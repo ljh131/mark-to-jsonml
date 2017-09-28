@@ -1,6 +1,6 @@
 {
   "name": "mark-to-jsonml",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Parse markdown into JsonML",
   "keywords": [
     "markdown",
