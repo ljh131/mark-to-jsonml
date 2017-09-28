@@ -11,27 +11,33 @@ class Parser {
 
     this.debug(`parser option: ${inspect(this.option)}`);
 
-    // NOTE: regex should have `global` option
+    // NOTE: inline regex should have `global` option
     const matchStrike = this.makeBasicInlineMatcher(/~~(.+?)~~/g, { tag: 's' });
     const matchBold = this.makeBasicInlineMatcher(/\*\*(.+?)\*\*/g, { tag: 'b' });
     const matchItalic = this.makeBasicInlineMatcher(/\*(.+?)\*/g, { tag: 'i' });
     const matchUnderscore = this.makeBasicInlineMatcher(/_(.+?)_/g, { tag: 'u' });
 
     this.BLOCK_MATCHERS = [
-      this.matchHeading, 
-      this.matchRuler, 
-      this.matchList, 
-      this.matchBlockQuote,
-      this.matchCode
-    ].map(f => f.bind(this));
+      { matcher: this.matchHeading }, 
+      { matcher: this.matchRuler }, 
+      { matcher: this.matchList }, 
+      { matcher: this.matchBlockQuote },
+      { matcher: this.matchCode, terminal: true }
+    ].map(m => { 
+      m.matcher = m.matcher.bind(this) ;
+      return m;
+    });
 
     this.INLINE_MATCHERS = [
-      matchStrike, 
-      matchBold, 
-      matchItalic, 
-      matchUnderscore,
-      this.matchLinkAndImage
-    ];
+      { matcher: matchStrike }, 
+      { matcher: matchBold },
+      { matcher: matchItalic }, 
+      { matcher: matchUnderscore },
+      { matcher: this.matchLinkAndImage, terminal: true }
+    ].map(m => { 
+      m.matcher = m.matcher.bind(this) ;
+      return m;
+    });
   }
 
   parse(mdtext) {
@@ -65,7 +71,7 @@ class Parser {
       s = s.substring(lastIndex);
 
       // traverse하며 inline parse를 적용한다.
-      const inlinedEl = this.parseInline(el);
+      const inlinedEl = m.terminal ? el : this.parseInline(el);
       this.debug(`INLINE PARSED: ${inspect(inlinedEl)}`);
 
       // root parse tree에 추가한다.
@@ -178,8 +184,9 @@ class Parser {
     return ['blockquote', quote];
   }
 
+  // FIXME 더 이상 파싱하면 안됨;;;
   matchCode(string, test) {
-    const CODE = /^\`\`\`(.*)\n?([^`]+)\`\`\`/gm;
+    const CODE = /\`\`\`(.*)\n?((.|\s)+?)\`\`\`/gm;
     var result = CODE.exec(string);
 
     if(test) return makeTestResult(CODE, result);
@@ -233,11 +240,11 @@ class Parser {
   }
 
   bestMatch(matchers, string) {
-    const candidatesResults = matchers.map((fn) => {
-      const testResult = fn(string, true);
+    const candidatesResults = matchers.map((m) => {
+      const testResult = m.matcher(string, true);
       //this.debug(`MATCHER ${fn.name}, test result: ${inspect(testResult)}`);
       if(!testResult) return null;
-      return { matcher: fn, testResult };
+      return R.merge({ testResult }, m);
     });
 
     if(R.isEmpty(compact(candidatesResults))) {
@@ -312,7 +319,7 @@ class Parser {
       const hasAttr = R.type(el[1]) == 'Object';
       const child = hasAttr ? el[2] : el[1];
       let childEl;
-      if(!!child) {
+      if(!m.terminal && !!child) {
         childEl = this._parseInline(child, depth + 1);
         this.debug(`inline - d${depth} children: ${inspect(childEl)}`);
       }
@@ -357,4 +364,4 @@ function makeTestResult(re, result) {
   return !!result ? R.merge({ lastIndex: re.lastIndex }, result) : null;
 }
 
-module.exports = { Parser };
+module.exports = { Parser, inspect };

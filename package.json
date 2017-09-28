@@ -1,13 +1,29 @@
 {
   "name": "mark-to-jsonml",
-  "version": "0.0.1",
-  "description": "parse markdown to jsonml",
+  "version": "0.0.2",
+  "description": "Parse markdown into JsonML",
+  "keywords": [
+    "markdown",
+    "text processing",
+    "jsonml"
+  ],
+  "author": {
+    "name": "ljh131",
+    "email": "ljh131@gmail.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ljh131/mark-to-jsonml.git"
+  },
   "main": "index.js",
   "scripts": {
     "test": "mocha"
   },
-  "author": "ljh131",
-  "license": "ISC",
+  "files": [
+    "src",
+    "test"
+  ],
   "dependencies": {
     "ramda": "^0.24.1"
   },

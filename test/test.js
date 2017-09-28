@@ -1,4 +1,4 @@
-const { Parser } = require('../');
+const { Parser, inspect } = require('../');
 const chai = require('chai');
 const expect = chai.expect;
 
@@ -86,6 +86,48 @@ describe('markdown parser should parse', () => {
     expect(parsed).to.deep.equal([
       [ 'code', { lang: 'js' }, 'console.log(a)\nreturn\n' ]
     ]);
+  });
+
+  it('code with inline style', () => {
+    const md = '``` js \nconsole.log("**_not a style_**")\nreturn\n```';
+    const parsed = p.parse(md);
+    expect(parsed).to.deep.equal([
+      [ 'code', { lang: 'js' }, 'console.log("**_not a style_**")\nreturn\n' ]
+    ]);
+
+  });
+
+  it('complex for example', () => {
+    const markdown = `# hello parser!
+* first
+* second **bold ~~and strike~~** plain
+ * nested
+  * deeply **nested**
+## try _this!_
+\`\`\`javascript
+console.log("hello parser!");
+\`\`\``;
+
+    const parser = new Parser();
+    const parsed = parser.parse(markdown);
+    //console.log(inspect(parsed));
+    expect(parsed).to.deep.equal(
+      [ 'markdown',
+        [ 'h', { level: 1 }, 'hello parser!' ],
+        [ 'ul',
+          [ 'li', 'first' ],
+          [ 'li',
+            'second ',
+            [ 'b', 'bold ', [ 's', 'and strike' ] ],
+            ' plain' ],
+          [ 'ul',
+            [ 'li', 'nested' ],
+            [ 'ul', [ 'li', 'deeply ', [ 'b', 'nested' ] ] ] ] ],
+        [ 'h', { level: 2 }, 'try ', [ 'u', 'this!' ] ],
+        [ 'code',
+          { lang: 'javascript' },
+          'console.log("hello parser!");\n' ] ]
+    );
   });
 
 });
