@@ -8,7 +8,7 @@ npm install mark-to-jsonml --save
 
 # Usage
 ```javascript
-import { Parser, inspect } from 'mark-to-jsonml';
+const { Parser, inspect } = require('mark-to-jsonml');
 
 const markdown = `# hello parser!
 * first
@@ -45,7 +45,7 @@ console.log(inspect(parsed));
 ```
 
 # Note
-Currently, It can parse these markdown syntax:
+Currently, It supports these markdown syntax:
 * Heading (h)
 * Unordered list (ul) 
   * with unlimited depth level

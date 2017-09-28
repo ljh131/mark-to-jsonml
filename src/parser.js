@@ -83,9 +83,8 @@ class Parser {
   }
 
   /**
-   * @returns regex result and lastIndex (or null) if test, parsed jsonml if !test
+   * @returns regex test result (use simply makeTestResult) if test, parsed jsonml array element if !test
    */
-  // FIXME ordered list
   matchList(string, test) {
     const UL = /(^[ ]*[*-][ ]+.+\n?)+/gm;
     const result = UL.exec(string);
@@ -184,7 +183,6 @@ class Parser {
     return ['blockquote', quote];
   }
 
-  // FIXME 더 이상 파싱하면 안됨;;;
   matchCode(string, test) {
     const CODE = /\`\`\`(.*)\n?((.|\s)+?)\`\`\`/gm;
     var result = CODE.exec(string);
