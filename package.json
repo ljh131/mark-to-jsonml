@@ -16,18 +16,22 @@
     "type": "git",
     "url": "https://github.com/ljh131/mark-to-jsonml.git"
   },
-  "main": "index.js",
+  "main": "./dist/parser.js",
   "scripts": {
-    "test": "mocha"
+    "build": "babel src --presets babel-preset-es2015 --out-dir dist",
+    "pretest": "npm run build",
+    "test": "mocha",
+    "prepublish": "npm run build"
   },
   "files": [
-    "src",
-    "test"
+    "dist"
   ],
   "dependencies": {
     "ramda": "^0.24.1"
   },
   "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-es2015": "^6.24.1",
     "chai": "^4.1.2",
     "mocha": "^3.5.3"
   }

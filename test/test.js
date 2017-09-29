@@ -1,4 +1,4 @@
-const { Parser, inspect } = require('../');
+const { Parser, inspect } = require('../dist/parser');
 const chai = require('chai');
 const expect = chai.expect;
 
