@@ -16,16 +16,8 @@ var Parser = function () {
     _classCallCheck(this, Parser);
 
     this.option = R.merge({
-      enableLog: false,
       includeRoot: true
     }, opt);
-    this.debug = this.option.enableLog ? function () {
-      var _console;
-
-      return (_console = console).log.apply(_console, arguments);
-    } : function () {};
-
-    this.debug('parser option: ' + inspect(this.option));
 
     // NOTE: inline regex should have `global` option
     var matchStrike = this.makeBasicInlineMatcher(/~~(.+?)~~/g, { tag: 's' });
@@ -48,43 +40,39 @@ var Parser = function () {
     key: 'parse',
     value: function parse(mdtext) {
       var parsed = [];
-      this.debug("START PARSE");
+
 
       var s = mdtext;
       while (!!s && s.length > 0) {
-        // 먼저 test모드로 돌려본다.
-        this.debug('BEGIN test match string: \'' + s + '\'');
 
         var m = this.bestMatch(this.BLOCK_MATCHERS, s);
+        // 먼저 test모드로 돌려본다.
+
         if (!m) {
-          this.debug('no match: ', s);
           this.addParagraph(parsed, s);
           break;
         }
 
         if (m.testResult.index > 0) {
           var plain = s.substring(0, m.testResult.index);
-          this.debug('no matched as plain: \'' + plain + '\'');
+
           this.addParagraph(parsed, plain);
         }
 
         // best matched로 실제 parse
         var el = m.matcher(s, false);
 
-        this.debug('MATCHER ' + m.matcher.name + ', parse result: ' + inspect(el));
-
         var lastIndex = m.testResult.lastIndex;
         s = s.substring(lastIndex);
 
         // traverse하며 inline parse를 적용한다.
         var inlinedEl = m.terminal ? el : this.parseInline(el);
-        this.debug('INLINE PARSED: ' + inspect(inlinedEl));
+
 
         // root parse tree에 추가한다.
         parsed.push(inlinedEl);
       }
 
-      this.debug('FINALLY PARSED:\n' + inspect(parsed));
       return this.option.includeRoot ? R.prepend('markdown', parsed) : parsed;
     }
 
@@ -95,12 +83,10 @@ var Parser = function () {
   }, {
     key: 'matchList',
     value: function matchList(string, test) {
-      var _this2 = this;
-
       var UL = /(^[ ]*[*-][ ]+.+\n?)+/gm;
       var result = UL.exec(string);
 
-      //this.debug(`UL test: ${test}, result: ${result}`);
+      //console.log(`UL test: ${test}, result: ${result}`);
 
       if (test) return makeTestResult(UL, result);
       if (!result) return null;
@@ -109,7 +95,7 @@ var Parser = function () {
 
       var LI = /([ ]*)[*-][ ]+(.+)/;
       var lines = compact(content.split('\n'));
-      this.debug('list lines: \'' + inspect(lines) + '\'');
+
 
       var lineIdx = 0;
 
@@ -126,21 +112,18 @@ var Parser = function () {
           var name = r[2];
 
           if (lev < curLev) {
-            _this2.debug('> leave');
             break;
           }
 
-          _this2.debug('idx: ' + lineIdx + ', line: \'' + line + '\', lev: ' + lev + ', name: \'' + name + '\' - cur lev: ' + curLev + ', cur node: \'' + inspect(curNode) + '\'');
           lineIdx += 1;
 
           if (lev == curLev) {
             // li붙이기
             curNode.push(['li', name]);
           } else if (lev > curLev) {
-            // ul시작
-            _this2.debug('> enter');
             var children = visit(lev, [['li', name]]);
-            _this2.debug('children \'' + inspect(children) + '\'');
+            // ul시작
+
             curNode.push(R.prepend('ul', children));
           }
         }
@@ -237,11 +220,9 @@ var Parser = function () {
   }, {
     key: 'makeBasicInlineMatcher',
     value: function makeBasicInlineMatcher(re, attr) {
-      var _this3 = this;
-
       return function (string, test) {
         re.lastIndex = 0;
-        //this.debug(`begin basic match s: '${string}', test: ${test}, re: ${re}`);
+        //console.log(`begin basic match s: '${string}', test: ${test}, re: ${re}`);
         var result = re.exec(string);
 
         if (test) return makeTestResult(re, result);
@@ -249,8 +230,6 @@ var Parser = function () {
 
         var outer = result[0];
         var inner = result[1];
-
-        _this3.debug(attr.tag + ' outer: ' + outer + ', inner: ' + inner);
 
         return [attr.tag, inner];
       };
@@ -260,7 +239,7 @@ var Parser = function () {
     value: function bestMatch(matchers, string) {
       var candidatesResults = matchers.map(function (m) {
         var testResult = m.matcher(string, true);
-        //this.debug(`MATCHER ${fn.name}, test result: ${inspect(testResult)}`);
+        //console.log(`MATCHER ${fn.name}, test result: ${inspect(testResult)}`);
         if (!testResult) return null;
         return R.merge({ testResult: testResult }, m);
       });
@@ -290,7 +269,7 @@ var Parser = function () {
   }, {
     key: '_applyOnTreePlains',
     value: function _applyOnTreePlains(ar, applyfn) {
-      var _this4 = this;
+      var _this2 = this;
 
       return R.unnest(R.prepend(ar[0], ar.slice(1).map(function (e) {
         if (R.type(e) == 'String') {
@@ -298,7 +277,7 @@ var Parser = function () {
         } else if (R.type(e) == 'Array') {
           // 이건 unnest되면 안되니 []로 감싸준다.
           // FIXME 더 좋은 방법이 없을까?
-          return [_this4._applyOnTreePlains(e, applyfn)];
+          return [_this2._applyOnTreePlains(e, applyfn)];
         } else {
           return e;
         }
@@ -312,32 +291,28 @@ var Parser = function () {
 
       /*
       if(R.type(s) != 'String') {
-        this.debug(`${s} SHOULD BE STRING FOR INLINE!!!`);
+        console.log(`${s} SHOULD BE STRING FOR INLINE!!!`);
         return s;
       }
       */
 
       while (!!s && s.length > 0) {
-        this.debug('inline - d' + depth + ' begin match: \'' + s + '\'');
 
         var m = this.bestMatch(this.INLINE_MATCHERS, s);
         if (!m) {
-          this.debug('inline - d' + depth + ' no match');
           matched.push(s);
           break;
         }
 
         if (m.testResult.index > 0) {
           var plain = s.substring(0, m.testResult.index);
-          this.debug('inline - d' + depth + ' no matched as plain: \'' + plain + '\'');
+
           matched.push(plain);
         }
 
-        this.debug('inline - d' + depth + ' best match: ' + inspect(m));
-
         // best matched로 실제 parse
         var el = m.matcher(s, false);
-        this.debug('inline - d' + depth + ' intermediate parsed: ' + inspect(el));
+
 
         // 이제 안으로 들어간다
         // inline은 하나의 string에서 여러 el을 만들지 않기 때문에 모두 들어갈 필요는 없다.
@@ -346,14 +321,13 @@ var Parser = function () {
         var childEl = void 0;
         if (!m.terminal && !!child) {
           childEl = this._parseInline(child, depth + 1);
-          this.debug('inline - d' + depth + ' children: ' + inspect(childEl));
         }
 
         var lastIndex = m.testResult.lastIndex;
         s = s.substring(lastIndex);
 
         var finalEl = !!childEl ? hasAttr ? [el[0], el[1]].concat(_toConsumableArray(childEl)) : [el[0]].concat(_toConsumableArray(childEl)) : el;
-        this.debug('inline - d' + depth + ' PARSED: ' + inspect(finalEl));
+
 
         matched.push(finalEl);
       }
@@ -363,13 +337,12 @@ var Parser = function () {
   }, {
     key: 'addParagraph',
     value: function addParagraph(parsed, text) {
-      var _this5 = this;
+      var _this3 = this;
 
       var paras = text.split("\n\n").map(function (s) {
         var para = null;
         if (s.length > 0 && s != '\n') {
-          _this5.debug('PARAGRAPH found: \'' + s + '\'');
-          para = _this5.parseInline(['p', s]);
+          para = _this3.parseInline(['p', s]);
         }
         return para;
       });

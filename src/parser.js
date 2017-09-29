@@ -4,12 +4,10 @@ const util = require('util');
 class Parser {
   constructor(opt) {
     this.option = R.merge({ 
-      enableLog: false,
       includeRoot: true
     }, opt);
-    this.debug = this.option.enableLog ? (...args) => console.log(...args) : () => {};
 
-    this.debug(`parser option: ${inspect(this.option)}`);
+    console.log(`parser option: ${inspect(this.option)}`);
 
     // NOTE: inline regex should have `global` option
     const matchStrike = this.makeBasicInlineMatcher(/~~(.+?)~~/g, { tag: 's' });
@@ -42,43 +40,43 @@ class Parser {
 
   parse(mdtext) {
     const parsed = [];
-    this.debug("START PARSE");
+    console.log("START PARSE");
 
     var s = mdtext;
     while(!!s && s.length > 0) {
       // 먼저 test모드로 돌려본다.
-      this.debug(`BEGIN test match string: '${s}'`);
+      console.log(`BEGIN test match string: '${s}'`);
 
       const m = this.bestMatch(this.BLOCK_MATCHERS, s);
       if(!m) {
-        this.debug(`no match: `, s);
+        console.log(`no match: `, s);
         this.addParagraph(parsed, s);
         break;
       }
 
       if(m.testResult.index > 0) {
         const plain = s.substring(0, m.testResult.index);
-        this.debug(`no matched as plain: '${plain}'`);
+        console.log(`no matched as plain: '${plain}'`);
         this.addParagraph(parsed, plain);
       }
 
       // best matched로 실제 parse
       const el = m.matcher(s, false);
 
-      this.debug(`MATCHER ${m.matcher.name}, parse result: ${inspect(el)}`);
+      console.log(`MATCHER ${m.matcher.name}, parse result: ${inspect(el)}`);
 
       const lastIndex = m.testResult.lastIndex;
       s = s.substring(lastIndex);
 
       // traverse하며 inline parse를 적용한다.
       const inlinedEl = m.terminal ? el : this.parseInline(el);
-      this.debug(`INLINE PARSED: ${inspect(inlinedEl)}`);
+      console.log(`INLINE PARSED: ${inspect(inlinedEl)}`);
 
       // root parse tree에 추가한다.
       parsed.push(inlinedEl);
     }
 
-    this.debug(`FINALLY PARSED:\n${inspect(parsed)}`);
+    console.log(`FINALLY PARSED:\n${inspect(parsed)}`);
     return this.option.includeRoot ? R.prepend('markdown', parsed) : parsed;
   }
 
@@ -89,7 +87,7 @@ class Parser {
     const UL = /(^[ ]*[*-][ ]+.+\n?)+/gm;
     const result = UL.exec(string);
 
-    //this.debug(`UL test: ${test}, result: ${result}`);
+    //console.log(`UL test: ${test}, result: ${result}`);
 
     if(test) return makeTestResult(UL, result);
     if(!result) return null;
@@ -98,7 +96,7 @@ class Parser {
 
     const LI = /([ ]*)[*-][ ]+(.+)/;
     const lines = compact(content.split('\n'));
-    this.debug(`list lines: '${inspect(lines)}'`);
+    console.log(`list lines: '${inspect(lines)}'`);
 
     let lineIdx = 0;
 
@@ -115,11 +113,11 @@ class Parser {
         const name = r[2];
 
         if(lev < curLev) {
-          this.debug('> leave');
+          console.log('> leave');
           break;
         }
 
-        this.debug(`idx: ${lineIdx}, line: '${line}', lev: ${lev}, name: '${name}' - cur lev: ${curLev}, cur node: '${inspect(curNode)}'`);
+        console.log(`idx: ${lineIdx}, line: '${line}', lev: ${lev}, name: '${name}' - cur lev: ${curLev}, cur node: '${inspect(curNode)}'`);
         lineIdx += 1;
 
         if(lev == curLev) {
@@ -127,9 +125,9 @@ class Parser {
           curNode.push(['li', name]);
         } else if(lev > curLev) {
           // ul시작
-          this.debug(`> enter`);
+          console.log(`> enter`);
           const children = visit(lev, [['li', name]]);
-          this.debug(`children '${inspect(children)}'`);
+          console.log(`children '${inspect(children)}'`);
           curNode.push(R.prepend('ul', children));
         } 
       }
@@ -222,7 +220,7 @@ class Parser {
   makeBasicInlineMatcher(re, attr) {
     return (string, test) => {
       re.lastIndex = 0;
-      //this.debug(`begin basic match s: '${string}', test: ${test}, re: ${re}`);
+      //console.log(`begin basic match s: '${string}', test: ${test}, re: ${re}`);
       var result = re.exec(string);
 
       if(test) return makeTestResult(re, result);
@@ -231,7 +229,7 @@ class Parser {
       const outer = result[0];
       const inner = result[1];
 
-      this.debug(`${attr.tag} outer: ${outer}, inner: ${inner}`);
+      console.log(`${attr.tag} outer: ${outer}, inner: ${inner}`);
 
       return [attr.tag, inner];
     }
@@ -240,7 +238,7 @@ class Parser {
   bestMatch(matchers, string) {
     const candidatesResults = matchers.map((m) => {
       const testResult = m.matcher(string, true);
-      //this.debug(`MATCHER ${fn.name}, test result: ${inspect(testResult)}`);
+      //console.log(`MATCHER ${fn.name}, test result: ${inspect(testResult)}`);
       if(!testResult) return null;
       return R.merge({ testResult }, m);
     });
@@ -285,32 +283,32 @@ class Parser {
 
     /*
     if(R.type(s) != 'String') {
-      this.debug(`${s} SHOULD BE STRING FOR INLINE!!!`);
+      console.log(`${s} SHOULD BE STRING FOR INLINE!!!`);
       return s;
     }
     */
 
     while(!!s && s.length > 0) {
-      this.debug(`inline - d${depth} begin match: '${s}'`);
+      console.log(`inline - d${depth} begin match: '${s}'`);
 
       const m = this.bestMatch(this.INLINE_MATCHERS, s);
       if(!m) {
-        this.debug(`inline - d${depth} no match`);
+        console.log(`inline - d${depth} no match`);
         matched.push(s);
         break;
       }
 
       if(m.testResult.index > 0) {
         const plain = s.substring(0, m.testResult.index);
-        this.debug(`inline - d${depth} no matched as plain: '${plain}'`);
+        console.log(`inline - d${depth} no matched as plain: '${plain}'`);
         matched.push(plain);
       }
 
-      this.debug(`inline - d${depth} best match: ${inspect(m)}`);
+      console.log(`inline - d${depth} best match: ${inspect(m)}`);
 
       // best matched로 실제 parse
       const el = m.matcher(s, false);
-      this.debug(`inline - d${depth} intermediate parsed: ${inspect(el)}`);
+      console.log(`inline - d${depth} intermediate parsed: ${inspect(el)}`);
 
       // 이제 안으로 들어간다
       // inline은 하나의 string에서 여러 el을 만들지 않기 때문에 모두 들어갈 필요는 없다.
@@ -319,7 +317,7 @@ class Parser {
       let childEl;
       if(!m.terminal && !!child) {
         childEl = this._parseInline(child, depth + 1);
-        this.debug(`inline - d${depth} children: ${inspect(childEl)}`);
+        console.log(`inline - d${depth} children: ${inspect(childEl)}`);
       }
 
       const lastIndex = m.testResult.lastIndex;
@@ -328,7 +326,7 @@ class Parser {
       const finalEl = !!childEl ? 
         (hasAttr ? [el[0], el[1], ...childEl] : [el[0], ...childEl]) : 
         el;
-      this.debug(`inline - d${depth} PARSED: ${inspect(finalEl)}`);
+      console.log(`inline - d${depth} PARSED: ${inspect(finalEl)}`);
 
       matched.push(finalEl);
     }
@@ -340,7 +338,7 @@ class Parser {
     const paras = text.split("\n\n").map(((s) => {
       let para = null;
       if(s.length > 0 && s != '\n') {
-        this.debug(`PARAGRAPH found: '${s}'`);
+        console.log(`PARAGRAPH found: '${s}'`);
         para = this.parseInline(['p', s]);
       }
       return para;
