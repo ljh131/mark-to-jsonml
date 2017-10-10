@@ -182,14 +182,14 @@ class Parser {
   }
 
   matchCode(string, test) {
-    const CODE = /\`\`\`(.*)\n?((.|\s)+?)\`\`\`/gm;
+    const CODE = /^\`\`\`(.*)([^]+?)^\`\`\`/gm;
     var result = CODE.exec(string);
 
     if(test) return makeTestResult(CODE, result);
     if(!result) return null;
 
     const lang = result[1].trim();
-    const content = result[2];
+    const content = result[2].replace(/^\n/, '');
 
     return ['code', { lang }, content];
   }
@@ -238,7 +238,7 @@ class Parser {
   bestMatch(matchers, string) {
     const candidatesResults = matchers.map((m) => {
       const testResult = m.matcher(string, true);
-      //console.log(`MATCHER ${fn.name}, test result: ${inspect(testResult)}`);
+      console.log(`MATCHER ${m.matcher.name}, test result: ${inspect(testResult)}`);
       if(!testResult) return null;
       return R.merge({ testResult }, m);
     });

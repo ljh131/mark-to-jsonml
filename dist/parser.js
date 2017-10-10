@@ -182,14 +182,14 @@ var Parser = function () {
   }, {
     key: 'matchCode',
     value: function matchCode(string, test) {
-      var CODE = /\`\`\`(.*)\n?((.|\s)+?)\`\`\`/gm;
+      var CODE = /^\`\`\`(.*)([^]+?)^\`\`\`/gm;
       var result = CODE.exec(string);
 
       if (test) return makeTestResult(CODE, result);
       if (!result) return null;
 
       var lang = result[1].trim();
-      var content = result[2];
+      var content = result[2].replace(/^\n/, '');
 
       return ['code', { lang: lang }, content];
     }
@@ -239,7 +239,7 @@ var Parser = function () {
     value: function bestMatch(matchers, string) {
       var candidatesResults = matchers.map(function (m) {
         var testResult = m.matcher(string, true);
-        //console.log(`MATCHER ${fn.name}, test result: ${inspect(testResult)}`);
+
         if (!testResult) return null;
         return R.merge({ testResult: testResult }, m);
       });
