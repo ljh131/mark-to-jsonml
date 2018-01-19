@@ -1,28 +1,61 @@
 const R = require('ramda');
 const util = require('util');
 
+class HeadingCounter {
+  constructor() {
+    this.init();
+  }
+
+  init() {
+    this.counter = { h1: 0, h2: 0, h3: 0 };
+  }
+
+  increase(lev) {
+    let num;
+    if(lev == 1) {
+      this.counter.h1 += 1;
+      this.counter.h2 = 0;
+      this.counter.h3 = 0;
+      num = `${this.counter.h1}.`;
+    } else if(lev == 2) {
+      this.counter.h2 += 1;
+      this.counter.h3 = 0;
+      num = `${this.counter.h1}.${this.counter.h2}.`;
+    } else if(lev == 3) {
+      this.counter.h3 += 1;
+      num = `${this.counter.h1}.${this.counter.h2}.${this.counter.h3}.`;
+    }
+    return num;
+  }
+}
+
 class Parser {
   constructor(opt) {
     this.option = R.merge({ 
-      includeRoot: true
+      includeRoot: true, // parse시 'markdown' tag와 prop을 붙인다.
+      parseToc: false, // tocPattern을 목차로 바꾼다.
+      tocPattern: /^{toc}$/, // 목차 패턴
+      headingNumber: true, // heading의 prop에 number로 번호를 붙인다.
     }, opt);
 
     console.log(`parser option: ${inspect(this.option)}`);
 
     // NOTE: inline regex should have `global` option
-    const matchStrike = this.makeBasicInlineMatcher(/~~(.+?)~~/g, { tag: 's' });
-    const matchBold = this.makeBasicInlineMatcher(/\*\*(.+?)\*\*/g, { tag: 'b' });
+    const matchStrike = this.makeBasicInlineMatcher(/~+(.+?)~+/g, { tag: 's' });
+    const matchBold = this.makeBasicInlineMatcher(/\*{2,}(.+?)\*{2,}/g, { tag: 'b' });
     const matchItalic = this.makeBasicInlineMatcher(/\*(.+?)\*/g, { tag: 'i' });
-    const matchUnderscore = this.makeBasicInlineMatcher(/_(.+?)_/g, { tag: 'u' });
+    const matchUnderscore = this.makeBasicInlineMatcher(/_+(.+?)_+/g, { tag: 'u' });
+    const matchInlineCode = this.makeBasicInlineMatcher(/`(.+?)`/g, { tag: 'code' });
 
     this.BLOCK_MATCHERS = [
       { matcher: this.matchHeading }, 
       { matcher: this.matchRuler }, 
       { matcher: this.matchList }, 
+      { matcher: this.matchTable },
       { matcher: this.matchBlockQuote },
       { matcher: this.matchCode, terminal: true }
     ].map(m => { 
-      m.matcher = m.matcher.bind(this) ;
+      m.matcher = m.matcher.bind(this);
       return m;
     });
 
@@ -31,15 +64,28 @@ class Parser {
       { matcher: matchBold },
       { matcher: matchItalic }, 
       { matcher: matchUnderscore },
-      { matcher: this.matchLinkAndImage, terminal: true }
+      { matcher: matchInlineCode, terminal: true },
+      { matcher: this.matchLink, terminal: true }
     ].map(m => { 
-      m.matcher = m.matcher.bind(this) ;
+      m.matcher = m.matcher.bind(this);
       return m;
     });
+
+    this.headingCounter = new HeadingCounter();
+  }
+
+  addBlockParser(blockParser, isTerminal=false) {
+    this.BLOCK_MATCHERS.push({matcher: blockParser, terminal: isTerminal});
+  }
+
+  addInlineParser(inlineParser, isTerminal=false) {
+    this.INLINE_MATCHERS.push({matcher: inlineParser, terminal: isTerminal});
   }
 
   parse(mdtext) {
-    const parsed = [];
+    this.headingCounter.init();
+
+    let parsed = [];
     console.log("START PARSE");
 
     var s = mdtext;
@@ -76,15 +122,49 @@ class Parser {
       parsed.push(inlinedEl);
     }
 
+    //console.log(`FINALLY PARSED:\n${inspect(parsed)}`);
+
+    let tocParsed = false;
+
+    if(this.option.parseToc) {
+      const toc = this.parseToc(parsed);
+      //console.log(`PARSED TOC:\n${inspect(toc)}`);
+
+      parsed = parsed.map((el) => {
+        if(el[0] === 'p' && this.option.tocPattern.test(el[1])) {
+          tocParsed = true;
+          return toc;
+        } else {
+          return el;
+        }
+      });
+    }
+
     console.log(`FINALLY PARSED:\n${inspect(parsed)}`);
-    return this.option.includeRoot ? R.prepend('markdown', parsed) : parsed;
+
+    return this.option.includeRoot ? R.concat(['markdown', {tocParsed}], parsed) : parsed;
+  }
+
+  // headings를 toc로 만들어준다.
+  // ['toc', ['toc-item', {level: 1, number: '1.'}, 'introduction', ['s', 'intro']], ...]
+  parseToc(parsed) {
+    const headings = R.filter((a) => R.type(a) === "Array" && R.head(a) === 'h' && a[1].level <= 3, R.drop(1, parsed));
+    const counter = new HeadingCounter();
+
+    const list = headings.map((h) => {
+      const lev = h[1].level;
+      const num = counter.increase(lev);
+
+      return R.unnest(['toc-item', {level: lev, number: num}, R.drop(2, h)]);
+    });
+    return R.prepend('toc', list);
   }
 
   /**
    * @returns regex test result (use simply makeTestResult) if test, parsed jsonml array element if !test
    */
   matchList(string, test) {
-    const UL = /(^[ ]*[*-][ ]+.+\n?)+/gm;
+    const UL = /(^[ ]*([*-]|\d+\.)[ ]+.+\n?)+/gm;
     const result = UL.exec(string);
 
     //console.log(`UL test: ${test}, result: ${result}`);
@@ -94,13 +174,17 @@ class Parser {
 
     const content = result[0];
 
-    const LI = /([ ]*)[*-][ ]+(.+)/;
+    const LI = /([ ]*)([*-]|\d+\.)[ ]+(.+)/;
     const lines = compact(content.split('\n'));
     console.log(`list lines: '${inspect(lines)}'`);
 
     let lineIdx = 0;
 
-    const visit = (curLev, curNode) => {
+    const visit = (myLev, lastType) => {
+      let curNode = [];
+      let nodes = [];
+      let type;
+
       while(lineIdx < lines.length) {
         const line = lines[lineIdx];
         const r = LI.exec(line);
@@ -108,34 +192,64 @@ class Parser {
           lineIdx++; 
           continue;
         }
+        console.log(`line: '${line}'`);
 
         const lev = r[1].length;
-        const name = r[2];
+        type = (r[2] === '*' || r[2] === '-') ? 'ul' : 'ol';
+        const name = r[3];
 
-        if(lev < curLev) {
+        if(lastType == null) {
+          lastType = type;
+        }
+
+        console.log(`idx: ${lineIdx}, line: '${line}', lev: ${lev}, type: ${type}, name: '${name}', nodes: '${inspect(nodes)}', cur node: '${inspect(curNode)}' - my lev: ${myLev}, last type: ${lastType}`);
+
+        if(lev < myLev) {
           console.log('> leave');
           break;
         }
 
-        console.log(`idx: ${lineIdx}, line: '${line}', lev: ${lev}, name: '${name}' - cur lev: ${curLev}, cur node: '${inspect(curNode)}'`);
-        lineIdx += 1;
+        if(lev == myLev) {
+          // 타입이 바뀌면 모아놨던걸 넣어준다.
+          if(lastType && lastType != type) {
+            curNode.push(R.prepend(lastType, nodes));
+            lastType = type;
+            nodes = [];
+            console.log(`type changed, cur node: ${inspect(curNode)}`);
+          }
 
-        if(lev == curLev) {
-          // li붙이기
-          curNode.push(['li', name]);
-        } else if(lev > curLev) {
-          // ul시작
+          nodes.push(['li', name]);
+          lineIdx += 1;
+        } else if(lev > myLev) {
           console.log(`> enter`);
-          const children = visit(lev, [['li', name]]);
-          console.log(`children '${inspect(children)}'`);
-          curNode.push(R.prepend('ul', children));
+          const children = visit(lev, type);
+          console.log(`got children '${inspect(children)}'`);
+
+          concatLast(nodes, children);
         } 
       }
+
+      if(nodes.length > 0) {
+        // curNode의 마지막 type과 남아있는 마지막 type을 비교
+        let lastAddedType;
+        if(curNode.length > 0) {
+          lastAddedType = R.head(R.last(curNode));
+        }
+        console.log(`remaining nodes: ${inspect(nodes)}, last added type: ${lastAddedType}, last: ${lastType}`);
+
+        if(curNode.length == 0 || lastAddedType != lastType) {
+          curNode.push(R.prepend(lastType, nodes));
+        } else {
+          curNode.push(nodes);
+        }
+      }
+
+      console.log(`returning cur node: ${inspect(curNode)}`);
       return curNode;
     };
 
-    const listEls = visit(-1, [])[0];
-    return listEls;
+    const listNode = visit(0, null);
+    return listNode[0];
   }
 
   matchHeading(string, test) {
@@ -147,8 +261,10 @@ class Parser {
 
     const level = result[1].length;
     const title = result[2];
+    const number = this.headingCounter.increase(level);
 
-    return ['h', { level }, title];
+    const prop = R.merge(this.option.headingNumber ? { number } : {}, { level });
+    return ['h', prop, title];
   }
 
   matchRuler(string, test) {
@@ -191,9 +307,58 @@ class Parser {
     const lang = result[1].trim();
     const content = result[2].replace(/^\n/, '');
 
-    return ['code', { lang }, content];
+    return ['codeblock', { lang }, content];
   }
 
+  matchTable(string, test) {
+    const TABLE = /(^((\|[^\n]*)+\|$)\n?)+/gm;
+    const result = TABLE.exec(string);
+
+    if(test) return makeTestResult(TABLE, result);
+    if(!result) return null;
+
+    const content = result[0];
+
+    let th;
+    let trs = compact(content.split('\n').map((line) => {
+      const tds = compact(line.split('\|').map((col) => {
+        if(col.length == 0) return null;
+        return ['td', col.trim()];
+      }));
+      return R.unnest(['tr', tds]);
+    }));
+
+    // 2줄 이상이고 줄1 내용이 ---로만 이루어져있으면 줄0은 th
+    if(trs.length >=2 && 
+        R.all(td => td[1].replace(/-+/, '').length == 0, R.remove(0, 1, trs[1]))) {
+      th = trs[0];
+      trs = R.remove(0, 2, trs);
+    }
+
+    return th ? 
+      ['table', ['thead', th], R.unnest(['tbody', trs])] :
+        ['table', R.unnest(['tbody', trs])];
+  }
+
+  matchLink(string, test) {
+    const LINK = /\[(.+?)\]\(([^\s]+?)\)|(https?:\/\/[^\s]+)/g;
+    var result = LINK.exec(string);
+
+    if(test) return makeTestResult(LINK, result);
+    if(!result) return null;
+
+    const title = result[1];
+    const href = result[2];
+    const url = result[3];
+
+    if(!!url) {
+      return ['a', { href: url }, url.replace(/https?:\/\//, '')];
+    } else {
+      return ['a', { href }, title];
+    }
+  }
+
+  /*
   matchLinkAndImage(string, test) {
     const LINK = /\[(.+?)\]\(([^\s]+?)\)|(https?:\/\/[^\s]+)/g;
     var result = LINK.exec(string);
@@ -209,6 +374,8 @@ class Parser {
       // image
       if(/\.(bmp|png|jpg|jpeg|tiff|gif)$/.test(url)) {
         return ['img', { src: url }];
+      } else if(/\.(mp4|ogg)$/.test(url)) {
+        return ['video', { src: url }];
       } else {
         return ['a', { href: url }, url.replace(/https?:\/\//, '')];
       }
@@ -216,6 +383,7 @@ class Parser {
       return ['a', { href }, title];
     }
   }
+  */
 
   makeBasicInlineMatcher(re, attr) {
     return (string, test) => {
@@ -249,7 +417,13 @@ class Parser {
 
     // 가장 가까이 매치된 것을 선정
     const bestMatched = compact(candidatesResults).reduce((last, val) => {
-      return val.testResult.index < last.testResult.index ? val : last;
+      if(val.testResult.index < last.testResult.index) {
+        return val;
+      } else if(val.testResult.index > last.testResult.index) {
+        return last;
+      } else {
+        return val.testResult.priority < last.testResult.priority ? val : last;
+      }
     }, { testResult: { index: string.length }});
 
     return bestMatched;
@@ -260,6 +434,7 @@ class Parser {
   }
 
   /*
+   * tree를 순회하면서 plain에 대해 applyfn을 적용한다.
    * ['tag', 'plain', 'plain2', ['t', 'another md']]
    * ['tag', {attr}, 'plain', 'plain2', ['t', 'another md']]
    */
@@ -337,6 +512,7 @@ class Parser {
   addParagraph(parsed, text) {
     const paras = text.split("\n\n").map(((s) => {
       let para = null;
+      s = s.trim();
       if(s.length > 0 && s != '\n') {
         console.log(`PARAGRAPH found: '${s}'`);
         para = this.parseInline(['p', s]);
@@ -348,6 +524,16 @@ class Parser {
 
 }
 
+function concatLast(ar, e) {
+  if(ar.length > 0) {
+    const lastidx = ar.length - 1;
+    const last = ar[lastidx];
+    ar[lastidx] = last.concat(e);
+  } else {
+    ar.push(e);
+  }
+}
+
 function compact(ar) {
   return R.reject(R.isNil, ar);
 }
@@ -356,8 +542,15 @@ function inspect(o) {
   return util.inspect(o, false, null);
 }
 
-function makeTestResult(re, result) {
-  return !!result ? R.merge({ lastIndex: re.lastIndex }, result) : null;
+/**
+ * low priority value means higher priority. built-in parser use 0
+ */
+function makeTestResult(re, result, priority=0) {
+  return !!result ? R.merge({ lastIndex: re.lastIndex, priority }, result) : null;
 }
 
-module.exports = { Parser, inspect };
+function getParsedProp(parsed) {
+  return parsed && parsed[0] === 'markdown' ? parsed[1] : {};
+}
+
+module.exports = { Parser, getParsedProp, makeTestResult, inspect };

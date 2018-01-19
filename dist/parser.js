@@ -9,6 +9,42 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 var R = require('ramda');
 var util = require('util');
 
+var HeadingCounter = function () {
+  function HeadingCounter() {
+    _classCallCheck(this, HeadingCounter);
+
+    this.init();
+  }
+
+  _createClass(HeadingCounter, [{
+    key: 'init',
+    value: function init() {
+      this.counter = { h1: 0, h2: 0, h3: 0 };
+    }
+  }, {
+    key: 'increase',
+    value: function increase(lev) {
+      var num = void 0;
+      if (lev == 1) {
+        this.counter.h1 += 1;
+        this.counter.h2 = 0;
+        this.counter.h3 = 0;
+        num = this.counter.h1 + '.';
+      } else if (lev == 2) {
+        this.counter.h2 += 1;
+        this.counter.h3 = 0;
+        num = this.counter.h1 + '.' + this.counter.h2 + '.';
+      } else if (lev == 3) {
+        this.counter.h3 += 1;
+        num = this.counter.h1 + '.' + this.counter.h2 + '.' + this.counter.h3 + '.';
+      }
+      return num;
+    }
+  }]);
+
+  return HeadingCounter;
+}();
+
 var Parser = function () {
   function Parser(opt) {
     var _this = this;
@@ -16,29 +52,53 @@ var Parser = function () {
     _classCallCheck(this, Parser);
 
     this.option = R.merge({
-      includeRoot: true
+      includeRoot: true, // parse시 'markdown' tag와 prop을 붙인다.
+      parseToc: false, // tocPattern을 목차로 바꾼다.
+      tocPattern: /^{toc}$/, // 목차 패턴
+      headingNumber: true // heading의 prop에 number로 번호를 붙인다.
     }, opt);
 
     // NOTE: inline regex should have `global` option
-    var matchStrike = this.makeBasicInlineMatcher(/~~(.+?)~~/g, { tag: 's' });
-    var matchBold = this.makeBasicInlineMatcher(/\*\*(.+?)\*\*/g, { tag: 'b' });
+    var matchStrike = this.makeBasicInlineMatcher(/~+(.+?)~+/g, { tag: 's' });
+    var matchBold = this.makeBasicInlineMatcher(/\*{2,}(.+?)\*{2,}/g, { tag: 'b' });
     var matchItalic = this.makeBasicInlineMatcher(/\*(.+?)\*/g, { tag: 'i' });
-    var matchUnderscore = this.makeBasicInlineMatcher(/_(.+?)_/g, { tag: 'u' });
+    var matchUnderscore = this.makeBasicInlineMatcher(/_+(.+?)_+/g, { tag: 'u' });
+    var matchInlineCode = this.makeBasicInlineMatcher(/`(.+?)`/g, { tag: 'code' });
 
-    this.BLOCK_MATCHERS = [{ matcher: this.matchHeading }, { matcher: this.matchRuler }, { matcher: this.matchList }, { matcher: this.matchBlockQuote }, { matcher: this.matchCode, terminal: true }].map(function (m) {
+    this.BLOCK_MATCHERS = [{ matcher: this.matchHeading }, { matcher: this.matchRuler }, { matcher: this.matchList }, { matcher: this.matchTable }, { matcher: this.matchBlockQuote }, { matcher: this.matchCode, terminal: true }].map(function (m) {
       m.matcher = m.matcher.bind(_this);
       return m;
     });
 
-    this.INLINE_MATCHERS = [{ matcher: matchStrike }, { matcher: matchBold }, { matcher: matchItalic }, { matcher: matchUnderscore }, { matcher: this.matchLinkAndImage, terminal: true }].map(function (m) {
+    this.INLINE_MATCHERS = [{ matcher: matchStrike }, { matcher: matchBold }, { matcher: matchItalic }, { matcher: matchUnderscore }, { matcher: matchInlineCode, terminal: true }, { matcher: this.matchLink, terminal: true }].map(function (m) {
       m.matcher = m.matcher.bind(_this);
       return m;
     });
+
+    this.headingCounter = new HeadingCounter();
   }
 
   _createClass(Parser, [{
+    key: 'addBlockParser',
+    value: function addBlockParser(blockParser) {
+      var isTerminal = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+
+      this.BLOCK_MATCHERS.push({ matcher: blockParser, terminal: isTerminal });
+    }
+  }, {
+    key: 'addInlineParser',
+    value: function addInlineParser(inlineParser) {
+      var isTerminal = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+
+      this.INLINE_MATCHERS.push({ matcher: inlineParser, terminal: isTerminal });
+    }
+  }, {
     key: 'parse',
     value: function parse(mdtext) {
+      var _this2 = this;
+
+      this.headingCounter.init();
+
       var parsed = [];
 
 
@@ -73,7 +133,45 @@ var Parser = function () {
         parsed.push(inlinedEl);
       }
 
-      return this.option.includeRoot ? R.prepend('markdown', parsed) : parsed;
+      //console.log(`FINALLY PARSED:\n${inspect(parsed)}`);
+
+      var tocParsed = false;
+
+      if (this.option.parseToc) {
+        var toc = this.parseToc(parsed);
+        //console.log(`PARSED TOC:\n${inspect(toc)}`);
+
+        parsed = parsed.map(function (el) {
+          if (el[0] === 'p' && _this2.option.tocPattern.test(el[1])) {
+            tocParsed = true;
+            return toc;
+          } else {
+            return el;
+          }
+        });
+      }
+
+      return this.option.includeRoot ? R.concat(['markdown', { tocParsed: tocParsed }], parsed) : parsed;
+    }
+
+    // headings를 toc로 만들어준다.
+    // ['toc', ['toc-item', {level: 1, number: '1.'}, 'introduction', ['s', 'intro']], ...]
+
+  }, {
+    key: 'parseToc',
+    value: function parseToc(parsed) {
+      var headings = R.filter(function (a) {
+        return R.type(a) === "Array" && R.head(a) === 'h' && a[1].level <= 3;
+      }, R.drop(1, parsed));
+      var counter = new HeadingCounter();
+
+      var list = headings.map(function (h) {
+        var lev = h[1].level;
+        var num = counter.increase(lev);
+
+        return R.unnest(['toc-item', { level: lev, number: num }, R.drop(2, h)]);
+      });
+      return R.prepend('toc', list);
     }
 
     /**
@@ -83,7 +181,7 @@ var Parser = function () {
   }, {
     key: 'matchList',
     value: function matchList(string, test) {
-      var UL = /(^[ ]*[*-][ ]+.+\n?)+/gm;
+      var UL = /(^[ ]*([*-]|\d+\.)[ ]+.+\n?)+/gm;
       var result = UL.exec(string);
 
       //console.log(`UL test: ${test}, result: ${result}`);
@@ -93,13 +191,17 @@ var Parser = function () {
 
       var content = result[0];
 
-      var LI = /([ ]*)[*-][ ]+(.+)/;
+      var LI = /([ ]*)([*-]|\d+\.)[ ]+(.+)/;
       var lines = compact(content.split('\n'));
 
 
       var lineIdx = 0;
 
-      var visit = function visit(curLev, curNode) {
+      var visit = function visit(myLev, lastType) {
+        var curNode = [];
+        var nodes = [];
+        var type = void 0;
+
         while (lineIdx < lines.length) {
           var line = lines[lineIdx];
           var r = LI.exec(line);
@@ -108,30 +210,57 @@ var Parser = function () {
             continue;
           }
 
-          var lev = r[1].length;
-          var name = r[2];
 
-          if (lev < curLev) {
+          var lev = r[1].length;
+          type = r[2] === '*' || r[2] === '-' ? 'ul' : 'ol';
+          var name = r[3];
+
+          if (lastType == null) {
+            lastType = type;
+          }
+
+          if (lev < myLev) {
             break;
           }
 
-          lineIdx += 1;
+          if (lev == myLev) {
+            // 타입이 바뀌면 모아놨던걸 넣어준다.
+            if (lastType && lastType != type) {
+              curNode.push(R.prepend(lastType, nodes));
+              lastType = type;
+              nodes = [];
+            }
 
-          if (lev == curLev) {
-            // li붙이기
-            curNode.push(['li', name]);
-          } else if (lev > curLev) {
-            var children = visit(lev, [['li', name]]);
-            // ul시작
+            nodes.push(['li', name]);
+            lineIdx += 1;
+          } else if (lev > myLev) {
+            var children = visit(lev, type);
 
-            curNode.push(R.prepend('ul', children));
+
+            concatLast(nodes, children);
           }
         }
+
+        if (nodes.length > 0) {
+          // curNode의 마지막 type과 남아있는 마지막 type을 비교
+          var lastAddedType = void 0;
+          if (curNode.length > 0) {
+            lastAddedType = R.head(R.last(curNode));
+          }
+
+
+          if (curNode.length == 0 || lastAddedType != lastType) {
+            curNode.push(R.prepend(lastType, nodes));
+          } else {
+            curNode.push(nodes);
+          }
+        }
+
         return curNode;
       };
 
-      var listEls = visit(-1, [])[0];
-      return listEls;
+      var listNode = visit(0, null);
+      return listNode[0];
     }
   }, {
     key: 'matchHeading',
@@ -144,8 +273,10 @@ var Parser = function () {
 
       var level = result[1].length;
       var title = result[2];
+      var number = this.headingCounter.increase(level);
 
-      return ['h', { level: level }, title];
+      var prop = R.merge(this.option.headingNumber ? { number: number } : {}, { level: level });
+      return ['h', prop, title];
     }
   }, {
     key: 'matchRuler',
@@ -191,11 +322,41 @@ var Parser = function () {
       var lang = result[1].trim();
       var content = result[2].replace(/^\n/, '');
 
-      return ['code', { lang: lang }, content];
+      return ['codeblock', { lang: lang }, content];
     }
   }, {
-    key: 'matchLinkAndImage',
-    value: function matchLinkAndImage(string, test) {
+    key: 'matchTable',
+    value: function matchTable(string, test) {
+      var TABLE = /(^((\|[^\n]*)+\|$)\n?)+/gm;
+      var result = TABLE.exec(string);
+
+      if (test) return makeTestResult(TABLE, result);
+      if (!result) return null;
+
+      var content = result[0];
+
+      var th = void 0;
+      var trs = compact(content.split('\n').map(function (line) {
+        var tds = compact(line.split('\|').map(function (col) {
+          if (col.length == 0) return null;
+          return ['td', col.trim()];
+        }));
+        return R.unnest(['tr', tds]);
+      }));
+
+      // 2줄 이상이고 줄1 내용이 ---로만 이루어져있으면 줄0은 th
+      if (trs.length >= 2 && R.all(function (td) {
+        return td[1].replace(/-+/, '').length == 0;
+      }, R.remove(0, 1, trs[1]))) {
+        th = trs[0];
+        trs = R.remove(0, 2, trs);
+      }
+
+      return th ? ['table', ['thead', th], R.unnest(['tbody', trs])] : ['table', R.unnest(['tbody', trs])];
+    }
+  }, {
+    key: 'matchLink',
+    value: function matchLink(string, test) {
       var LINK = /\[(.+?)\]\(([^\s]+?)\)|(https?:\/\/[^\s]+)/g;
       var result = LINK.exec(string);
 
@@ -207,16 +368,36 @@ var Parser = function () {
       var url = result[3];
 
       if (!!url) {
-        // image
-        if (/\.(bmp|png|jpg|jpeg|tiff|gif)$/.test(url)) {
-          return ['img', { src: url }];
-        } else {
-          return ['a', { href: url }, url.replace(/https?:\/\//, '')];
-        }
+        return ['a', { href: url }, url.replace(/https?:\/\//, '')];
       } else {
         return ['a', { href: href }, title];
       }
     }
+
+    /*
+    matchLinkAndImage(string, test) {
+      const LINK = /\[(.+?)\]\(([^\s]+?)\)|(https?:\/\/[^\s]+)/g;
+      var result = LINK.exec(string);
+       if(test) return makeTestResult(LINK, result);
+      if(!result) return null;
+       const title = result[1];
+      const href = result[2];
+      const url = result[3];
+       if(!!url) {
+        // image
+        if(/\.(bmp|png|jpg|jpeg|tiff|gif)$/.test(url)) {
+          return ['img', { src: url }];
+        } else if(/\.(mp4|ogg)$/.test(url)) {
+          return ['video', { src: url }];
+        } else {
+          return ['a', { href: url }, url.replace(/https?:\/\//, '')];
+        }
+      } else {
+        return ['a', { href }, title];
+      }
+    }
+    */
+
   }, {
     key: 'makeBasicInlineMatcher',
     value: function makeBasicInlineMatcher(re, attr) {
@@ -250,7 +431,13 @@ var Parser = function () {
 
       // 가장 가까이 매치된 것을 선정
       var bestMatched = compact(candidatesResults).reduce(function (last, val) {
-        return val.testResult.index < last.testResult.index ? val : last;
+        if (val.testResult.index < last.testResult.index) {
+          return val;
+        } else if (val.testResult.index > last.testResult.index) {
+          return last;
+        } else {
+          return val.testResult.priority < last.testResult.priority ? val : last;
+        }
       }, { testResult: { index: string.length } });
 
       return bestMatched;
@@ -262,6 +449,7 @@ var Parser = function () {
     }
 
     /*
+     * tree를 순회하면서 plain에 대해 applyfn을 적용한다.
      * ['tag', 'plain', 'plain2', ['t', 'another md']]
      * ['tag', {attr}, 'plain', 'plain2', ['t', 'another md']]
      */
@@ -269,7 +457,7 @@ var Parser = function () {
   }, {
     key: '_applyOnTreePlains',
     value: function _applyOnTreePlains(ar, applyfn) {
-      var _this2 = this;
+      var _this3 = this;
 
       return R.unnest(R.prepend(ar[0], ar.slice(1).map(function (e) {
         if (R.type(e) == 'String') {
@@ -277,7 +465,7 @@ var Parser = function () {
         } else if (R.type(e) == 'Array') {
           // 이건 unnest되면 안되니 []로 감싸준다.
           // FIXME 더 좋은 방법이 없을까?
-          return [_this2._applyOnTreePlains(e, applyfn)];
+          return [_this3._applyOnTreePlains(e, applyfn)];
         } else {
           return e;
         }
@@ -337,12 +525,13 @@ var Parser = function () {
   }, {
     key: 'addParagraph',
     value: function addParagraph(parsed, text) {
-      var _this3 = this;
+      var _this4 = this;
 
       var paras = text.split("\n\n").map(function (s) {
         var para = null;
+        s = s.trim();
         if (s.length > 0 && s != '\n') {
-          para = _this3.parseInline(['p', s]);
+          para = _this4.parseInline(['p', s]);
         }
         return para;
       });
@@ -353,6 +542,16 @@ var Parser = function () {
   return Parser;
 }();
 
+function concatLast(ar, e) {
+  if (ar.length > 0) {
+    var lastidx = ar.length - 1;
+    var last = ar[lastidx];
+    ar[lastidx] = last.concat(e);
+  } else {
+    ar.push(e);
+  }
+}
+
 function compact(ar) {
   return R.reject(R.isNil, ar);
 }
@@ -361,8 +560,17 @@ function inspect(o) {
   return util.inspect(o, false, null);
 }
 
+/**
+ * low priority value means higher priority. built-in parser use 0
+ */
 function makeTestResult(re, result) {
-  return !!result ? R.merge({ lastIndex: re.lastIndex }, result) : null;
+  var priority = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
+
+  return !!result ? R.merge({ lastIndex: re.lastIndex, priority: priority }, result) : null;
 }
 
-module.exports = { Parser: Parser, inspect: inspect };
+function getParsedProp(parsed) {
+  return parsed && parsed[0] === 'markdown' ? parsed[1] : {};
+}
+
+module.exports = { Parser: Parser, getParsedProp: getParsedProp, makeTestResult: makeTestResult, inspect: inspect };
