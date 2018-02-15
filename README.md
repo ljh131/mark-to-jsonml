@@ -1,19 +1,16 @@
-
 # mark-to-jsonml
 Parse markdown into [JsonML](http://www.jsonml.org/)
 
-Want to see how this markdown document actually parsed and rendered (with React)? [Click here](http://zerosquare.me/ljh131/650)
+* Supports most common markdown specs and other extensions
+  * Extension includes: table, toc and heading numbers
+* Easy to add custom syntax parser
+  * With automatic inline style parsing
 
+**This is a parser, not a renderer! If you're looking rendering (in React), check [mark-to-react](https://github.com/ljh131/mark-to-react)!**
 # Installation
 ```sh
 npm install mark-to-jsonml --save
 ```
-
-# Features
-* Supports most common markdown specs and other extensions
-  * extension includes: table, toc and heading numbers
-* Simple custom syntax parser
-  * with automatic inline style parsing
 
 # Usage example
 ```javascript
