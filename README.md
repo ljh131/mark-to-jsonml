@@ -6,7 +6,7 @@ Parse markdown into [JsonML](http://www.jsonml.org/)
 * Easy to add custom syntax parser
   * With automatic inline style parsing
 
-**This is a parser, not a renderer! If you're looking rendering (in React), check [mark-to-react](https://github.com/ljh131/mark-to-react)!**
+**Note: This is a parser, not a renderer! If you're looking rendering (in React), check [mark-to-react](https://github.com/ljh131/mark-to-react)!**
 # Installation
 ```sh
 npm install mark-to-jsonml --save
@@ -63,25 +63,45 @@ console.log(inspect(parsed));
 ```
 
 
-# Supported markdown specs (include extensions)
-* Table of content (toc)
-* Heading (h1/h2/h3/h4/h5)
-* Table (table)
-* Ordered list (ol, li) and Unordered list (ul, li)
-  * with unlimited depth level
-  * mixing Ordered and Unordered is also possible
-* Block quote (blockquote)
-* Code block (codeblock)
-* Paragraph (p)
-* Horizontal ruler (hr)
-* And Inlines
-  * Inline code (code)
-  * Link (a) 
-    * and auto link (if anything starting with `http(s)://` prefix)
-  * bold (b)
-  * strike (s)
-  * italic (i)
-  * underline (u)
+# Markdown and JsonML elements
+Find out which markdown is mapped to which JsonML element. Note that 2nd-depth indicates element name and 3rd-depth indicates their property.
+
+## Block elements
+* Table of content
+  * toc: wrapping element
+  * toc-item: individual item which represents correspond heading
+* Heading
+  * h
+     * level
+     * number
+* Table
+  * table, thead, tbody, tr, th, td
+* Ordered list and Unordered list
+  * ol, ul, li
+* Block quote 
+  * blockquote
+* Code block
+  * codeblock
+     * lang
+* Paragraph
+  * p
+* Horizontal ruler 
+  * hr
+
+## Inline elements
+* Inline code 
+  * code
+* Link (Note: URL starts with http:// or https:// will be recognized as a link)
+  * a
+    * href: url
+* bold 
+  * b
+* strike
+  * s
+* italic
+  * i
+* underline 
+  * u
 
 # API
 ## Class: Parser
@@ -132,6 +152,3 @@ When you use custom parser, you should use this function to make test result and
 * `result` {Object}: Executed result of RegExp
 * `priority` {Integer}: Lower value means highest priority 
   * priority used only when more than one parsers are competing
-
-# Note
-* Basically, parsed JsonML elements' names follow corresponding HTML elements' names.
