@@ -23,9 +23,6 @@
     "test": "mocha",
     "prepublish": "npm run build"
   },
-  "files": [
-    "dist"
-  ],
   "dependencies": {
     "ramda": "^0.24.1"
   },
