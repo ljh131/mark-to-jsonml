@@ -1,6 +1,6 @@
 {
   "name": "mark-to-jsonml",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Parse markdown into JsonML",
   "keywords": [
     "markdown",
@@ -17,15 +17,15 @@
     "url": "https://github.com/ljh131/mark-to-jsonml.git"
   },
   "main": "./dist/parser.js",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "babel src --presets babel-preset-es2015 --plugins transform-remove-console --out-dir dist",
     "pretest": "npm run build",
     "test": "mocha",
-    "prepublish": "npm run build"
+    "prepublishOnly": "npm run build"
   },
-  "files": [
-    "dist"
-  ],
   "dependencies": {
     "ramda": "^0.24.1"
   },
