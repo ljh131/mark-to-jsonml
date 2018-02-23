@@ -253,14 +253,14 @@ class Parser {
   }
 
   matchHeading(string, test) {
-    var H = /^(#+)[ ]*(.+)/gm;
+    var H = /^(#+)[ ]*(.*)/gm;
     var result = H.exec(string);
 
     if(test) return makeTestResult(H, result);
     if(!result) return null;
 
     const level = result[1].length;
-    const title = result[2];
+    const title = result[2] || '';
     const number = this.headingCounter.increase(level);
 
     const prop = R.merge(this.option.headingNumber ? { number } : {}, { level });

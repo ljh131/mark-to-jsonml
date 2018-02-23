@@ -265,14 +265,14 @@ var Parser = function () {
   }, {
     key: 'matchHeading',
     value: function matchHeading(string, test) {
-      var H = /^(#+)[ ]*(.+)/gm;
+      var H = /^(#+)[ ]*(.*)/gm;
       var result = H.exec(string);
 
       if (test) return makeTestResult(H, result);
       if (!result) return null;
 
       var level = result[1].length;
-      var title = result[2];
+      var title = result[2] || '';
       var number = this.headingCounter.increase(level);
 
       var prop = R.merge(this.option.headingNumber ? { number: number } : {}, { level: level });
