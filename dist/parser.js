@@ -368,7 +368,7 @@ var Parser = function () {
       var url = result[3];
 
       if (!!url) {
-        return ['a', { href: url }, url.replace(/https?:\/\//, '')];
+        return ['a', { href: url, isAutoLink: true }, url.replace(/https?:\/\//, '')];
       } else {
         return ['a', { href: href }, title];
       }
