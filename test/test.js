@@ -27,7 +27,7 @@ describe('markdown parser should parse', () => {
     const md = `link http://daum.net here`;
     const parsed = p.parse(md);
     expect(parsed).to.deep.equal([
-      ['p', 'link ', ['a', {href: 'http://daum.net'}, 'daum.net'], ' here']
+      ['p', 'link ', ['a', {href: 'http://daum.net', isAutoLink: true}, 'daum.net'], ' here']
     ]);
   });
 
@@ -35,7 +35,7 @@ describe('markdown parser should parse', () => {
     const md = `link http://daum.net/image.png here`;
     const parsed = p.parse(md);
     expect(parsed).to.deep.equal([
-      ['p', 'link ', ['a', {href: 'http://daum.net/image.png'}, 'daum.net/image.png'], ' here']
+      ['p', 'link ', ['a', {href: 'http://daum.net/image.png', isAutoLink: true}, 'daum.net/image.png'], ' here']
     ]);
   });
 
