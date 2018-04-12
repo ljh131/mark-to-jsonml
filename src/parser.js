@@ -318,9 +318,27 @@ class Parser {
     if(!result) return null;
 
     const content = result[0];
+    const extractTds = (line, seperator='\|') => {
+      const tds = compact(line.split(seperator).map((col) => {
+        if(col.length == 0) return null;
+        return ['td', col.trim()];
+      }));
+      return tds;
+    }
 
     let th;
-    let trs = compact(content.split('\n').map((line) => {
+    let trs = compact(content.split('\n').map((line, idx) => {
+      if(line.length == 0) return null;
+
+      // `|| head ||` 처리
+      if(idx == 0) {
+        const tds = extractTds(line, /\|{2,}/);
+        if(tds.length > 1) {
+          th = R.unnest(['tr', tds]);
+          return null;
+        }
+      }
+
       const tds = compact(line.split('\|').map((col) => {
         if(col.length == 0) return null;
         return ['td', col.trim()];
@@ -341,7 +359,7 @@ class Parser {
   }
 
   matchLink(string, test) {
-    const LINK = /\[(.+?)\]\(([^\s]+?)\)|(https?:\/\/[^\s]+)/g;
+    const LINK = /\[(.+?)\](?:\(([^\s]+?)\))?|(https?:\/\/[^\s]+)/g;
     var result = LINK.exec(string);
 
     if(test) return makeTestResult(LINK, result);
@@ -349,12 +367,17 @@ class Parser {
 
     const title = result[1];
     const href = result[2];
-    const url = result[3];
+    const urlonly = result[3];
 
-    if(!!url) {
-      return ['a', { href: url, isAutoLink: true }, url.replace(/https?:\/\//, '')];
+    if(!!urlonly) {
+      return ['a', { href: urlonly, isAutoLink: true }, urlonly];
     } else {
-      return ['a', { href }, title];
+      if(href) {
+        return ['a', { href }, title];
+      } else {
+        // use title as href
+        return ['a', { href: title }, title];
+      }
     }
   }
 
