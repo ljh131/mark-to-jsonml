@@ -334,9 +334,29 @@ var Parser = function () {
       if (!result) return null;
 
       var content = result[0];
+      var extractTds = function extractTds(line) {
+        var seperator = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '\|';
+
+        var tds = compact(line.split(seperator).map(function (col) {
+          if (col.length == 0) return null;
+          return ['td', col.trim()];
+        }));
+        return tds;
+      };
 
       var th = void 0;
-      var trs = compact(content.split('\n').map(function (line) {
+      var trs = compact(content.split('\n').map(function (line, idx) {
+        if (line.length == 0) return null;
+
+        // `|| head ||` 처리
+        if (idx == 0) {
+          var _tds = extractTds(line, /\|{2,}/);
+          if (_tds.length > 1) {
+            th = R.unnest(['tr', _tds]);
+            return null;
+          }
+        }
+
         var tds = compact(line.split('\|').map(function (col) {
           if (col.length == 0) return null;
           return ['td', col.trim()];
@@ -357,7 +377,7 @@ var Parser = function () {
   }, {
     key: 'matchLink',
     value: function matchLink(string, test) {
-      var LINK = /\[(.+?)\]\(([^\s]+?)\)|(https?:\/\/[^\s]+)/g;
+      var LINK = /\[(.+?)\](?:\(([^\s]+?)\))?|(https?:\/\/[^\s]+)/g;
       var result = LINK.exec(string);
 
       if (test) return makeTestResult(LINK, result);
@@ -365,12 +385,17 @@ var Parser = function () {
 
       var title = result[1];
       var href = result[2];
-      var url = result[3];
+      var urlonly = result[3];
 
-      if (!!url) {
-        return ['a', { href: url, isAutoLink: true }, url.replace(/https?:\/\//, '')];
+      if (!!urlonly) {
+        return ['a', { href: urlonly, isAutoLink: true }, urlonly];
       } else {
-        return ['a', { href: href }, title];
+        if (href) {
+          return ['a', { href: href }, title];
+        } else {
+          // use title as href
+          return ['a', { href: title }, title];
+        }
       }
     }
 

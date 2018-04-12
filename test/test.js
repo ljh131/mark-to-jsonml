@@ -27,7 +27,7 @@ describe('markdown parser should parse', () => {
     const md = `link http://daum.net here`;
     const parsed = p.parse(md);
     expect(parsed).to.deep.equal([
-      ['p', 'link ', ['a', {href: 'http://daum.net', isAutoLink: true}, 'daum.net'], ' here']
+      ['p', 'link ', ['a', {href: 'http://daum.net', isAutoLink: true}, 'http://daum.net'], ' here']
     ]);
   });
 
@@ -35,7 +35,7 @@ describe('markdown parser should parse', () => {
     const md = `link http://daum.net/image.png here`;
     const parsed = p.parse(md);
     expect(parsed).to.deep.equal([
-      ['p', 'link ', ['a', {href: 'http://daum.net/image.png', isAutoLink: true}, 'daum.net/image.png'], ' here']
+      ['p', 'link ', ['a', {href: 'http://daum.net/image.png', isAutoLink: true}, 'http://daum.net/image.png'], ' here']
     ]);
   });
 
@@ -97,6 +97,68 @@ describe('markdown parser should parse', () => {
     ]);
   });
 
+  it('basic table', () => {
+    const md = `
+| a | b |
+| 1 | 2 |
+`;
+    const parsed = p.parse(md);
+    expect(parsed).to.deep.equal([
+      [ 'table',
+        [ 'tbody',
+          [ 'tr', [ 'td', 'a' ], [ 'td', 'b' ] ],
+          [ 'tr', [ 'td', '1' ], [ 'td', '2' ] ],
+        ] 
+      ] 
+    ]);
+  });
+
+  it('table with head', () => {
+    const md = `
+| a | b |
+| - | -- |
+| 1 | 2 |
+`;
+    const parsed = p.parse(md);
+    expect(parsed).to.deep.equal([
+      [ 'table',
+        [ 'thead', [ 'tr', [ 'td', 'a' ], [ 'td', 'b' ] ] ],
+        [ 'tbody', [ 'tr', [ 'td', '1' ], [ 'td', '2' ] ] ] 
+      ] 
+    ]);
+  });
+
+  it('table with head2', () => {
+    const md = `
+|| a || b ||
+| 1 | 2 |
+`;
+    const parsed = p.parse(md);
+    expect(parsed).to.deep.equal([
+      [ 'table',
+        [ 'thead', [ 'tr', [ 'td', 'a' ], [ 'td', 'b' ] ] ],
+        [ 'tbody', [ 'tr', [ 'td', '1' ], [ 'td', '2' ] ] ] 
+      ] 
+    ]);
+  });
+
+  it('table with mix head1/2', () => {
+    const md = `
+|| a || b ||
+| - | - |
+| 1 | 2 |
+`;
+    const parsed = p.parse(md);
+    expect(parsed).to.deep.equal([
+      [ 'table',
+        [ 'thead', [ 'tr', [ 'td', 'a' ], [ 'td', 'b' ] ] ],
+        [ 'tbody',
+          [ 'tr', [ 'td', '-' ], [ 'td', '-' ] ],
+          [ 'tr', [ 'td', '1' ], [ 'td', '2' ] ] ] 
+      ] 
+    ]);
+  });
+
   it('complex for example', () => {
     const markdown = `# hello parser!
 * first
@@ -141,6 +203,13 @@ describe('inline parser should parse', () => {
     const parsed = p.parseInline(makeParagraph(`[GitHub](http://github.com)`));
     expect(parsed).to.deep.equal(['p', 
       ['a', { href: 'http://github.com' }, 'GitHub']
+    ]);
+  });
+
+  it('url only link', () => {
+    const parsed = p.parseInline(makeParagraph(`[http://github.com]`));
+    expect(parsed).to.deep.equal(['p', 
+      ['a', { href: 'http://github.com' }, 'http://github.com']
     ]);
   });
 
