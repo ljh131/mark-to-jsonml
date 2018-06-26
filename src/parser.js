@@ -107,6 +107,7 @@ class Parser {
       }
 
       // best matched로 실제 parse
+      // FIXME el could be null (테스트에서는 가능했지만 실제 파싱이 불가능한 경우?)
       const el = m.matcher(s, false);
 
       console.log(`MATCHER ${m.matcher.name}, parse result: ${inspect(el)}`);
@@ -311,7 +312,7 @@ class Parser {
   }
 
   matchTable(string, test) {
-    const TABLE = /(^((\|[^\n]*)+\|$)\n?)+/gm;
+    const TABLE = /(^((\|[^\n]*)+\|[ ]*$)\n?)+/gm;
     const result = TABLE.exec(string);
 
     if(test) return makeTestResult(TABLE, result);
