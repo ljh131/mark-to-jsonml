@@ -328,7 +328,7 @@ var Parser = function () {
   }, {
     key: 'matchTable',
     value: function matchTable(string, test) {
-      var TABLE = /(^((\|[^\n]*)+\|[ ]*$)\n?)+/gm;
+      var TABLE = /(^((\|[^\n]*)+\|$)\n?)+/gm;
       var result = TABLE.exec(string);
 
       if (test) return makeTestResult(TABLE, result);
@@ -336,9 +336,10 @@ var Parser = function () {
 
       var content = result[0];
       var extractTds = function extractTds(line) {
-        var seperator = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '\|';
+        var seperator = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : /\|/;
 
         var tds = compact(line.split(seperator).map(function (col) {
+          //console.log('col', col);
           if (col.length == 0) return null;
           return ['td', col.trim()];
         }));
@@ -349,26 +350,38 @@ var Parser = function () {
       var trs = compact(content.split('\n').map(function (line, idx) {
         if (line.length == 0) return null;
 
+        //console.log('line', line, idx);
+
         // `|| head ||` 처리
         if (idx == 0) {
-          var _tds = extractTds(line, /\|{2,}/);
-          if (_tds.length > 1) {
-            th = R.unnest(['tr', _tds]);
-            return null;
+          //console.log('try th');
+
+          // TABLE re로는 ||로 된 TH를 확인할 수 없으므로
+          var TH = /^(\|{2,}[^\n]*)+\|{2,}[ ]*$/gm;
+          if (TH.test(line)) {
+            var _tds = extractTds(line, /\|{2,}/);
+            if (_tds.length >= 1) {
+              //console.log('|| th found on: ', line);
+              th = R.unnest(['tr', _tds]);
+              return null;
+            }
           }
         }
 
-        var tds = compact(line.split('\|').map(function (col) {
-          if (col.length == 0) return null;
-          return ['td', col.trim()];
-        }));
-        return R.unnest(['tr', tds]);
+        var tds = extractTds(line, /\|+/);
+        if (tds.length >= 1) {
+          return R.unnest(['tr', tds]);
+        }
+
+        return null;
       }));
 
       // 2줄 이상이고 줄1 내용이 ---로만 이루어져있으면 줄0은 th
       if (trs.length >= 2 && R.all(function (td) {
-        return td[1].replace(/-+/, '').length == 0;
+        return (/-+/.test(td[1].trim())
+        );
       }, R.remove(0, 1, trs[1]))) {
+        //console.log('-- th found: ', inspect(trs[1]));
         th = trs[0];
         trs = R.remove(0, 2, trs);
       }
@@ -509,6 +522,8 @@ var Parser = function () {
         return s;
       }
       */
+
+      if (s === '') return [''];
 
       while (!!s && s.length > 0) {
 
