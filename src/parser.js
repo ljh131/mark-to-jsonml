@@ -312,15 +312,16 @@ class Parser {
   }
 
   matchTable(string, test) {
-    const TABLE = /(^((\|[^\n]*)+\|[ ]*$)\n?)+/gm;
+    const TABLE = /(^((\|[^\n]*)+\|$)\n?)+/gm;
     const result = TABLE.exec(string);
 
     if(test) return makeTestResult(TABLE, result);
     if(!result) return null;
 
     const content = result[0];
-    const extractTds = (line, seperator='\|') => {
+    const extractTds = (line, seperator=/\|/) => {
       const tds = compact(line.split(seperator).map((col) => {
+        //console.log('col', col);
         if(col.length == 0) return null;
         return ['td', col.trim()];
       }));
@@ -331,25 +332,36 @@ class Parser {
     let trs = compact(content.split('\n').map((line, idx) => {
       if(line.length == 0) return null;
 
+      //console.log('line', line, idx);
+
       // `|| head ||` 처리
       if(idx == 0) {
-        const tds = extractTds(line, /\|{2,}/);
-        if(tds.length > 1) {
-          th = R.unnest(['tr', tds]);
-          return null;
+        //console.log('try th');
+
+        // TABLE re로는 ||로 된 TH를 확인할 수 없으므로
+        const TH = /^(\|{2,}[^\n]*)+\|{2,}[ ]*$/gm;
+        if(TH.test(line)) {
+          const tds = extractTds(line, /\|{2,}/);
+          if(tds.length >= 1) {
+            //console.log('|| th found on: ', line);
+            th = R.unnest(['tr', tds]);
+            return null;
+          }
         }
       }
 
-      const tds = compact(line.split('\|').map((col) => {
-        if(col.length == 0) return null;
-        return ['td', col.trim()];
-      }));
-      return R.unnest(['tr', tds]);
+      const tds = extractTds(line, /\|+/);
+      if(tds.length >= 1) {
+        return R.unnest(['tr', tds]);
+      }
+
+      return null;
     }));
 
     // 2줄 이상이고 줄1 내용이 ---로만 이루어져있으면 줄0은 th
     if(trs.length >=2 && 
-        R.all(td => td[1].replace(/-+/, '').length == 0, R.remove(0, 1, trs[1]))) {
+        R.all(td => /-+/.test(td[1].trim()), R.remove(0, 1, trs[1]))) {
+      //console.log('-- th found: ', inspect(trs[1]));
       th = trs[0];
       trs = R.remove(0, 2, trs);
     }
@@ -486,6 +498,8 @@ class Parser {
       return s;
     }
     */
+
+    if(s === '') return [''];
 
     while(!!s && s.length > 0) {
       console.log(`inline - d${depth} begin match: '${s}'`);

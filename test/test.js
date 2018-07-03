@@ -97,6 +97,44 @@ describe('markdown parser should parse', () => {
     ]);
   });
 
+  it('empty table', () => {
+    const md = `
+| |
+`;
+    const parsed = p.parse(md);
+    expect(parsed).to.deep.equal([
+      [ 'table',
+        [ 'tbody',
+          [ 'tr', [ 'td', '' ] ],
+        ] 
+      ] 
+    ]);
+  });
+
+  it('simple table', () => {
+    const md = `
+| a |
+`;
+    const parsed = p.parse(md);
+    expect(parsed).to.deep.equal([
+      [ 'table',
+        [ 'tbody',
+          [ 'tr', [ 'td', 'a' ] ],
+        ] 
+      ] 
+    ]);
+  });
+
+  it('trailing space is not allowed table', () => {
+    const md = `
+| a | 
+`;
+    const parsed = p.parse(md);
+    expect(parsed).to.deep.equal([
+      [ 'p', '| a |' ]
+    ]);
+  });
+
   it('basic table', () => {
     const md = `
 | a | b |
@@ -108,6 +146,21 @@ describe('markdown parser should parse', () => {
         [ 'tbody',
           [ 'tr', [ 'td', 'a' ], [ 'td', 'b' ] ],
           [ 'tr', [ 'td', '1' ], [ 'td', '2' ] ],
+        ] 
+      ] 
+    ]);
+  });
+
+  it('something weired table', () => {
+    const md = `
+| a |
+||
+`;
+    const parsed = p.parse(md);
+    expect(parsed).to.deep.equal([
+      [ 'table',
+        [ 'tbody',
+          [ 'tr', [ 'td', 'a' ] ],
         ] 
       ] 
     ]);
