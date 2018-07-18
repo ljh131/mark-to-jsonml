@@ -181,6 +181,23 @@ describe('markdown parser should parse', () => {
     ]);
   });
 
+  it('table with head should contains only -', () => {
+    const md = `
+| a | b |
+| - | double dash -- |
+| 1 | 2 |
+`;
+    const parsed = p.parse(md);
+    console.log(inspect(parsed));
+    expect(parsed).to.deep.equal([
+      [ 'table',
+        [ 'tbody',
+          [ 'tr', [ 'td', 'a' ], [ 'td', 'b' ] ],
+          [ 'tr', [ 'td', '-' ], [ 'td', 'double dash --' ] ],
+          [ 'tr', [ 'td', '1' ], [ 'td', '2' ] ] ] ] 
+    ]);
+  });
+
   it('table with head2', () => {
     const md = `
 || a || b ||

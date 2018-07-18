@@ -378,7 +378,7 @@ var Parser = function () {
 
       // 2줄 이상이고 줄1 내용이 ---로만 이루어져있으면 줄0은 th
       if (trs.length >= 2 && R.all(function (td) {
-        return (/-+/.test(td[1].trim())
+        return (/^-+$/.test(td[1].trim())
         );
       }, R.remove(0, 1, trs[1]))) {
         //console.log('-- th found: ', inspect(trs[1]));

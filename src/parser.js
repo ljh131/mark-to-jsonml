@@ -360,7 +360,7 @@ class Parser {
 
     // 2줄 이상이고 줄1 내용이 ---로만 이루어져있으면 줄0은 th
     if(trs.length >=2 && 
-        R.all(td => /-+/.test(td[1].trim()), R.remove(0, 1, trs[1]))) {
+        R.all(td => /^-+$/.test(td[1].trim()), R.remove(0, 1, trs[1]))) {
       //console.log('-- th found: ', inspect(trs[1]));
       th = trs[0];
       trs = R.remove(0, 2, trs);
