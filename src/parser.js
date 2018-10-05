@@ -146,7 +146,7 @@ class Parser {
       });
     }
 
-    if(this.option.parseFootnote) {
+    if(this.footnotes.length > 0) {
       const footnotes = R.prepend('footnotes', this.footnotes);
       parsed.push(this.parseInline(footnotes));
     }
