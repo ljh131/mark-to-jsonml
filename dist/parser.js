@@ -156,7 +156,7 @@ var Parser = function () {
         });
       }
 
-      if (this.option.parseFootnote) {
+      if (this.footnotes.length > 0) {
         var footnotes = R.prepend('footnotes', this.footnotes);
         parsed.push(this.parseInline(footnotes));
       }
