@@ -53,9 +53,11 @@ var Parser = function () {
 
     this.option = R.merge({
       includeRoot: true, // parse시 'markdown' tag와 prop을 붙인다.
+      headingNumber: true, // heading의 prop에 number로 번호를 붙인다.
       parseToc: false, // tocPattern을 목차로 바꾼다.
+      parseFootnote: false, // footnotePattern을 각주로 바꾼다.
       tocPattern: /^{toc}$/, // 목차 패턴
-      headingNumber: true // heading의 prop에 number로 번호를 붙인다.
+      footnotePattern: /\[\*([^\s]+)?\s(.+)\]/g // 각주 패턴
     }, opt);
 
     // NOTE: inline regex should have `global` option
@@ -70,7 +72,7 @@ var Parser = function () {
       return m;
     });
 
-    this.INLINE_MATCHERS = [{ matcher: matchStrike }, { matcher: matchBold }, { matcher: matchItalic }, { matcher: matchUnderscore }, { matcher: matchInlineCode, terminal: true }, { matcher: this.matchLink, terminal: true }].map(function (m) {
+    this.INLINE_MATCHERS = [{ matcher: matchStrike }, { matcher: matchBold }, { matcher: matchItalic }, { matcher: matchUnderscore }, { matcher: matchInlineCode, terminal: true }, { matcher: this.matchLink, terminal: true }, { matcher: this.matchFootnote, terminal: true }].map(function (m) {
       m.matcher = m.matcher.bind(_this);
       return m;
     });
@@ -98,6 +100,8 @@ var Parser = function () {
       var _this2 = this;
 
       this.headingCounter.init();
+      this.footnoteCounter = 1;
+      this.footnotes = [];
 
       var parsed = [];
 
@@ -152,7 +156,19 @@ var Parser = function () {
         });
       }
 
-      return this.option.includeRoot ? R.concat(['markdown', { tocParsed: tocParsed }], parsed) : parsed;
+      if (this.option.parseFootnote) {
+        var footnotes = R.prepend('footnotes', this.footnotes);
+        parsed.push(this.parseInline(footnotes));
+      }
+
+      if (this.option.includeRoot) {
+        return R.concat(['markdown', {
+          tocParsed: tocParsed,
+          footnoteParsed: this.option.parseFootnote
+        }], parsed);
+      } else {
+        return parsed;
+      }
     }
 
     // headings를 toc로 만들어준다.
@@ -389,11 +405,17 @@ var Parser = function () {
       return th ? ['table', ['thead', th], R.unnest(['tbody', trs])] : ['table', R.unnest(['tbody', trs])];
     }
   }, {
+    key: 'execInlineRegex',
+    value: function execInlineRegex(re, string) {
+      if (!re.global) throw "error: inline regex should have global option";
+      re.lastIndex = 0;
+      return re.exec(string);
+    }
+  }, {
     key: 'matchLink',
     value: function matchLink(string, test) {
       var LINK = /\[(.+?)\](?:\(([^\s]+?)\))?|(https?:\/\/[^\s]+)/g;
-      var result = LINK.exec(string);
-
+      var result = this.execInlineRegex(LINK, string);
       if (test) return makeTestResult(LINK, result);
       if (!result) return null;
 
@@ -412,11 +434,31 @@ var Parser = function () {
         }
       }
     }
+  }, {
+    key: 'matchFootnote',
+    value: function matchFootnote(string, test) {
+      var result = this.execInlineRegex(this.option.footnotePattern, string);
+      if (test) return makeTestResult(this.option.footnotePattern, result, -1);
+      if (!result) return null;
+
+      var id = this.footnoteCounter++;
+      var title = result[1] || id;
+      var content = result[2];
+
+      var meta = {
+        id: id,
+        title: title
+      };
+
+      this.footnotes.push(['footnote-item', meta, content]);
+
+      return ['footnote', meta, title];
+    }
 
     /*
     matchLinkAndImage(string, test) {
       const LINK = /\[(.+?)\]\(([^\s]+?)\)|(https?:\/\/[^\s]+)/g;
-      var result = LINK.exec(string);
+      let result = LINK.exec(string);
        if(test) return makeTestResult(LINK, result);
       if(!result) return null;
        const title = result[1];
@@ -440,10 +482,10 @@ var Parser = function () {
   }, {
     key: 'makeBasicInlineMatcher',
     value: function makeBasicInlineMatcher(re, attr) {
+      var _this3 = this;
+
       return function (string, test) {
-        re.lastIndex = 0;
-        //console.log(`begin basic match s: '${string}', test: ${test}, re: ${re}`);
-        var result = re.exec(string);
+        var result = _this3.execInlineRegex(re, string);
 
         if (test) return makeTestResult(re, result);
         if (!result) return null;
@@ -496,7 +538,7 @@ var Parser = function () {
   }, {
     key: '_applyOnTreePlains',
     value: function _applyOnTreePlains(ar, applyfn) {
-      var _this3 = this;
+      var _this4 = this;
 
       return R.unnest(R.prepend(ar[0], ar.slice(1).map(function (e) {
         if (R.type(e) == 'String') {
@@ -504,7 +546,7 @@ var Parser = function () {
         } else if (R.type(e) == 'Array') {
           // 이건 unnest되면 안되니 []로 감싸준다.
           // FIXME 더 좋은 방법이 없을까?
-          return [_this3._applyOnTreePlains(e, applyfn)];
+          return [_this4._applyOnTreePlains(e, applyfn)];
         } else {
           return e;
         }
@@ -566,13 +608,13 @@ var Parser = function () {
   }, {
     key: 'addParagraph',
     value: function addParagraph(parsed, text) {
-      var _this4 = this;
+      var _this5 = this;
 
       var paras = text.split("\n\n").map(function (s) {
         var para = null;
         s = s.trim();
         if (s.length > 0 && s != '\n') {
-          para = _this4.parseInline(['p', s]);
+          para = _this5.parseInline(['p', s]);
         }
         return para;
       });

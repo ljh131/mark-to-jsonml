@@ -188,7 +188,6 @@ describe('markdown parser should parse', () => {
 | 1 | 2 |
 `;
     const parsed = p.parse(md);
-    console.log(inspect(parsed));
     expect(parsed).to.deep.equal([
       [ 'table',
         [ 'tbody',
@@ -310,7 +309,7 @@ describe('toc parser should parse', () => {
     const parsed = p.parse(mdtext);
     expect(parsed).to.deep.equal(
       [ 'markdown',
-        { tocParsed: true },
+        { tocParsed: true, footnoteParsed: false },
         [ 'toc',
           [ 'toc-item', { level: 1, number: '1.' }, 'a ', [ 'i', 's' ] ],
           [ 'toc-item', { level: 2, number: '1.1.' }, 'a-1 ', [ 'u', 'u' ] ],
@@ -322,6 +321,45 @@ describe('toc parser should parse', () => {
         [ 'h', { level: 3, number: '1.1.1.' }, 'a-1-1' ],
         [ 'h', { level: 2, number: '1.2.' }, 'a-2' ],
         [ 'h', { level: 1, number: '2.' }, 'b' ] ]
+    );
+  });
+});
+
+describe('footnote parser should parse', () => {
+  const p = new Parser({ includeRoot: true, parseFootnote: true });
+
+  it('complex footnote', () => {
+    const mdtext = `
+hello parser[* it parse markdown into jsonml]
+you can[*note in other word, optionally] specify footnote 
+is it[* for more information, please visit http://github.com] works?
+`;
+    const parsed = p.parse(mdtext);
+    //console.log(inspect(parsed));
+    expect(parsed).to.deep.equal(
+      [ 'markdown',
+        { tocParsed: false, footnoteParsed: true },
+        [ 'p',
+          'hello parser',
+          [ 'footnote', { id: 1, title: 1 }, 1 ],
+          '\nyou can',
+          [ 'footnote', { id: 2, title: 'note' }, 'note' ],
+          ' specify footnote \nis it',
+          [ 'footnote', { id: 3, title: 3 }, 3 ],
+          ' works?' ],
+        [ 'footnotes',
+          [ 'footnote-item',
+            { id: 1, title: 1 },
+            'it parse markdown into jsonml' ],
+          [ 'footnote-item',
+            { id: 2, title: 'note' },
+            'in other word, optionally' ],
+          [ 'footnote-item',
+            { id: 3, title: 3 },
+            'for more information, please visit ',
+            [ 'a',
+              { href: 'http://github.com', isAutoLink: true },
+              'http://github.com' ] ] ] ]
     );
   });
 });
