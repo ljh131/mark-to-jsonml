@@ -31,11 +31,13 @@ class HeadingCounter {
 
 class Parser {
   constructor(opt) {
-    this.option = R.merge({ 
+    this.option = R.merge({
       includeRoot: true, // parse시 'markdown' tag와 prop을 붙인다.
-      parseToc: false, // tocPattern을 목차로 바꾼다.
-      tocPattern: /^{toc}$/, // 목차 패턴
       headingNumber: true, // heading의 prop에 number로 번호를 붙인다.
+      parseToc: false, // tocPattern을 목차로 바꾼다.
+      parseFootnote: false, // footnotePattern을 각주로 바꾼다.
+      tocPattern: /^{toc}$/, // 목차 패턴
+      footnotePattern: /\[\*([^\s]+)?\s(.+)\]/g, // 각주 패턴
     }, opt);
 
     console.log(`parser option: ${inspect(this.option)}`);
@@ -65,7 +67,8 @@ class Parser {
       { matcher: matchItalic }, 
       { matcher: matchUnderscore },
       { matcher: matchInlineCode, terminal: true },
-      { matcher: this.matchLink, terminal: true }
+      { matcher: this.matchLink, terminal: true },
+      { matcher: this.matchFootnote, terminal: true }
     ].map(m => { 
       m.matcher = m.matcher.bind(this);
       return m;
@@ -84,11 +87,13 @@ class Parser {
 
   parse(mdtext) {
     this.headingCounter.init();
+    this.footnoteCounter = 1;
+    this.footnotes = [];
 
     let parsed = [];
     console.log("START PARSE");
 
-    var s = mdtext;
+    let s = mdtext;
     while(!!s && s.length > 0) {
       // 먼저 test모드로 돌려본다.
       console.log(`BEGIN test match string: '${s}'`);
@@ -141,9 +146,21 @@ class Parser {
       });
     }
 
+    if(this.option.parseFootnote) {
+      const footnotes = R.prepend('footnotes', this.footnotes);
+      parsed.push(this.parseInline(footnotes));
+    }
+
     console.log(`FINALLY PARSED:\n${inspect(parsed)}`);
 
-    return this.option.includeRoot ? R.concat(['markdown', {tocParsed}], parsed) : parsed;
+    if(this.option.includeRoot) {
+      return R.concat(['markdown', {
+        tocParsed, 
+        footnoteParsed: this.option.parseFootnote
+      }], parsed);
+    } else {
+      return parsed;
+    }
   }
 
   // headings를 toc로 만들어준다.
@@ -254,8 +271,8 @@ class Parser {
   }
 
   matchHeading(string, test) {
-    var H = /^(#+)[ ]*(.*)/gm;
-    var result = H.exec(string);
+    const H = /^(#+)[ ]*(.*)/gm;
+    let result = H.exec(string);
 
     if(test) return makeTestResult(H, result);
     if(!result) return null;
@@ -269,8 +286,8 @@ class Parser {
   }
 
   matchRuler(string, test) {
-    var HR = /^(-|=|_){3,}$/gm;
-    var result = HR.exec(string);
+    const HR = /^(-|=|_){3,}$/gm;
+    let result = HR.exec(string);
 
     if(test) return makeTestResult(HR, result);
     if(!result) return null;
@@ -279,8 +296,8 @@ class Parser {
   }
 
   matchBlockQuote(string, test) {
-    var BLOCK = /(^>.*\n?)+/gm;
-    var result = BLOCK.exec(string);
+    const BLOCK = /(^>.*\n?)+/gm;
+    let result = BLOCK.exec(string);
 
     if(test) return makeTestResult(BLOCK, result);
     if(!result) return null;
@@ -300,7 +317,7 @@ class Parser {
 
   matchCode(string, test) {
     const CODE = /^\`\`\`(.*)([^]+?)^\`\`\`/gm;
-    var result = CODE.exec(string);
+    let result = CODE.exec(string);
 
     if(test) return makeTestResult(CODE, result);
     if(!result) return null;
@@ -371,10 +388,15 @@ class Parser {
         ['table', R.unnest(['tbody', trs])];
   }
 
+  execInlineRegex(re, string) {
+    if(!re.global) throw "error: inline regex should have global option";
+    re.lastIndex = 0;
+    return re.exec(string);
+  }
+
   matchLink(string, test) {
     const LINK = /\[(.+?)\](?:\(([^\s]+?)\))?|(https?:\/\/[^\s]+)/g;
-    var result = LINK.exec(string);
-
+    let result = this.execInlineRegex(LINK, string);
     if(test) return makeTestResult(LINK, result);
     if(!result) return null;
 
@@ -394,10 +416,29 @@ class Parser {
     }
   }
 
+  matchFootnote(string, test) {
+    let result = this.execInlineRegex(this.option.footnotePattern, string);
+    if(test) return makeTestResult(this.option.footnotePattern, result, -1);
+    if(!result) return null;
+
+    const id = this.footnoteCounter++;
+    const title = result[1] || id;
+    const content = result[2];
+
+    const meta = {
+      id,
+      title
+    };
+
+    this.footnotes.push(['footnote-item', meta, content]);
+    
+    return ['footnote', meta, title];
+  }
+
   /*
   matchLinkAndImage(string, test) {
     const LINK = /\[(.+?)\]\(([^\s]+?)\)|(https?:\/\/[^\s]+)/g;
-    var result = LINK.exec(string);
+    let result = LINK.exec(string);
 
     if(test) return makeTestResult(LINK, result);
     if(!result) return null;
@@ -423,9 +464,7 @@ class Parser {
 
   makeBasicInlineMatcher(re, attr) {
     return (string, test) => {
-      re.lastIndex = 0;
-      //console.log(`begin basic match s: '${string}', test: ${test}, re: ${re}`);
-      var result = re.exec(string);
+      let result = this.execInlineRegex(re, string);
 
       if(test) return makeTestResult(re, result);
       if(!result) return null;
