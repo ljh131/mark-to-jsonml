@@ -37,7 +37,7 @@ class Parser {
       parseToc: false, // tocPattern을 목차로 바꾼다.
       parseFootnote: false, // footnotePattern을 각주로 바꾼다.
       tocPattern: /^{toc}$/, // 목차 패턴
-      footnotePattern: /\[\*([^\s]+)?\s(.+)\]/g, // 각주 패턴
+      footnotePattern: /\[\*([^\s]+)?\s([^\]]+)\]/g, // 각주 패턴
     }, opt);
 
     console.log(`parser option: ${inspect(this.option)}`);
@@ -61,15 +61,15 @@ class Parser {
       return m;
     });
 
-    this.INLINE_MATCHERS = [
+    this.INLINE_MATCHERS = compact([
       { matcher: matchStrike }, 
       { matcher: matchBold },
       { matcher: matchItalic }, 
       { matcher: matchUnderscore },
       { matcher: matchInlineCode, terminal: true },
       { matcher: this.matchLink, terminal: true },
-      { matcher: this.matchFootnote, terminal: true }
-    ].map(m => { 
+      this.option.parseFootnote ? { matcher: this.matchFootnote, terminal: true } : null
+    ]).map(m => { 
       m.matcher = m.matcher.bind(this);
       return m;
     });

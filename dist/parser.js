@@ -57,7 +57,7 @@ var Parser = function () {
       parseToc: false, // tocPattern을 목차로 바꾼다.
       parseFootnote: false, // footnotePattern을 각주로 바꾼다.
       tocPattern: /^{toc}$/, // 목차 패턴
-      footnotePattern: /\[\*([^\s]+)?\s(.+)\]/g // 각주 패턴
+      footnotePattern: /\[\*([^\s]+)?\s([^\]]+)\]/g // 각주 패턴
     }, opt);
 
     // NOTE: inline regex should have `global` option
@@ -72,7 +72,7 @@ var Parser = function () {
       return m;
     });
 
-    this.INLINE_MATCHERS = [{ matcher: matchStrike }, { matcher: matchBold }, { matcher: matchItalic }, { matcher: matchUnderscore }, { matcher: matchInlineCode, terminal: true }, { matcher: this.matchLink, terminal: true }, { matcher: this.matchFootnote, terminal: true }].map(function (m) {
+    this.INLINE_MATCHERS = compact([{ matcher: matchStrike }, { matcher: matchBold }, { matcher: matchItalic }, { matcher: matchUnderscore }, { matcher: matchInlineCode, terminal: true }, { matcher: this.matchLink, terminal: true }, this.option.parseFootnote ? { matcher: this.matchFootnote, terminal: true } : null]).map(function (m) {
       m.matcher = m.matcher.bind(_this);
       return m;
     });
