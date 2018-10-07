@@ -328,6 +328,26 @@ describe('toc parser should parse', () => {
 describe('footnote parser should parse', () => {
   const p = new Parser({ includeRoot: true, parseFootnote: true });
 
+  it('multiple footnotes on one line', () => {
+    const mdtext = `
+hello[* hi] parser[* this thing]
+`;
+
+    const parsed = p.parse(mdtext);
+    expect(parsed).to.deep.equal(
+      [ 'markdown',
+        { tocParsed: false, footnoteParsed: true },
+        [ 'p',
+          'hello',
+          [ 'footnote', { id: 1, title: 1 }, 1 ],
+          ' parser',
+          [ 'footnote', { id: 2, title: 2 }, 2 ] ],
+        [ 'footnotes',
+          [ 'footnote-item', { id: 1, title: 1 }, 'hi' ],
+          [ 'footnote-item', { id: 2, title: 2 }, 'this thing' ] ] ]
+    );
+  });
+
   it('complex footnote', () => {
     const mdtext = `
 hello parser[* it parse markdown into jsonml]
