@@ -6,7 +6,11 @@ Parse markdown into [JsonML](http://www.jsonml.org/)
 * Easy to add custom syntax parser
   * With automatic inline style parsing
 
-**Note: This is a parser, not a renderer! If you're looking rendering (in React), check [mark-to-react](https://github.com/ljh131/mark-to-react)!**
+## Another mark-to-*
+
+* [mark-to-jsonml](https://github.com/ljh131/mark-to-jsonml)
+* [mark-to-react](https://github.com/ljh131/mark-to-react)
+
 # Installation
 ```sh
 npm install mark-to-jsonml --save
@@ -107,10 +111,13 @@ Find out which markdown is mapped to which JsonML element. Note that 2nd-depth i
 ## Class: Parser
 ### new Parser(options)
 * `options` {Object}
+  * `includeRoot` {Boolean}: Parsed result include root element `markdown` with some props
+  * `headingNumber` {Boolean}: Parsed heading props include number (eg, 1, 2, 2.1)
   * `parseToc` {Boolean}: Parse `table of content` pattern with `tocPattern` 
   * `tocPattern` {String}: Specify `table of content` pattern in text
-  * `headingNumber` {Boolean}: Parsed heading props include number (eg, 1, 2, 2.1)
-  * `includeRoot` {Boolean}: Parsed result include root element `markdown` with some props
+  * `parseFootnote` {Boolean}: Parse `footnote` pattern with `footnotePattern` 
+  * `footnotePattern` {String}: Specify `footnote` pattern in text
+
 ### parse(mdtext)
 Parse markdown text into JsonML
 
