@@ -73,6 +73,15 @@ describe('markdown parser should parse', () => {
     ]);
   });
 
+  it('mixed list at first level', () => {
+    const md = `1. aaa\n- bbb`;
+    const parsed = p.parse(md);
+    expect(parsed).to.deep.equal([
+      [ 'ol', [ 'li', 'aaa' ] ],
+      [ 'ul', [ 'li', 'bbb' ] ] 
+    ]);
+  });
+
   it('code', () => {
     const md = '```\nconsole.log(a)\nreturn\n```';
     const parsed = p.parse(md);

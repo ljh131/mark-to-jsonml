@@ -45,6 +45,10 @@ var HeadingCounter = function () {
   return HeadingCounter;
 }();
 
+// FIXME introduce Matcher and extract matchers
+// FIXME fix matchers to return { testParse: function, parse: function } instead returns test result and parse result
+
+
 var Parser = function () {
   function Parser(opt) {
     var _this = this;
@@ -80,6 +84,18 @@ var Parser = function () {
     this.headingCounter = new HeadingCounter();
   }
 
+  /**
+   * Add block element parser
+   *
+   * @param {blockParser} function blockParser(string, test)
+   *
+   * More about blockParser:
+   *
+   * blockParser should returns regex test result (use simply makeTestResult) if test=true and returns parsed jsonml array element if test=false.
+   * You could return multiple JsonML elements if necessary.
+   */
+
+
   _createClass(Parser, [{
     key: 'addBlockParser',
     value: function addBlockParser(blockParser) {
@@ -107,35 +123,48 @@ var Parser = function () {
 
 
       var s = mdtext;
-      while (!!s && s.length > 0) {
 
-        var m = this.bestMatch(this.BLOCK_MATCHERS, s);
+      var _loop = function _loop() {
+
+        var m = _this2.bestMatch(_this2.BLOCK_MATCHERS, s);
         // 먼저 test모드로 돌려본다.
 
         if (!m) {
-          this.addParagraph(parsed, s);
-          break;
+          _this2.addParagraph(parsed, s);
+          return 'break';
         }
 
         if (m.testResult.index > 0) {
           var plain = s.substring(0, m.testResult.index);
 
-          this.addParagraph(parsed, plain);
+          _this2.addParagraph(parsed, plain);
         }
 
         // best matched로 실제 parse
         // FIXME el could be null (테스트에서는 가능했지만 실제 파싱이 불가능한 경우?)
-        var el = m.matcher(s, false);
+        var els = m.matcher(s, false);
+
+        if (R.type(els[0]) != "Array") {
+          els = [els];
+        }
+
+        els.forEach(function (el) {
+          // traverse하며 inline parse를 적용한다.
+          var inlinedEl = m.terminal ? el : _this2.parseInline(el);
+
+
+          // root parse tree에 추가한다.
+          parsed.push(inlinedEl);
+        });
 
         var lastIndex = m.testResult.lastIndex;
         s = s.substring(lastIndex);
+      };
 
-        // traverse하며 inline parse를 적용한다.
-        var inlinedEl = m.terminal ? el : this.parseInline(el);
+      while (!!s && s.length > 0) {
+        var _ret = _loop();
 
-
-        // root parse tree에 추가한다.
-        parsed.push(inlinedEl);
+        if (_ret === 'break') break;
       }
 
       //console.log(`FINALLY PARSED:\n${inspect(parsed)}`);
@@ -190,25 +219,20 @@ var Parser = function () {
       });
       return R.prepend('toc', list);
     }
-
-    /**
-     * @returns regex test result (use simply makeTestResult) if test, parsed jsonml array element if !test
-     */
-
   }, {
     key: 'matchList',
     value: function matchList(string, test) {
-      var UL = /(^[ ]*([*-]|\d+\.)[ ]+.+\n?)+/gm;
-      var result = UL.exec(string);
+      var ULOL = /(^[ ]*([*-]|\d+\.)[ ]+.+\n?)+/gm;
+      var result = ULOL.exec(string);
 
-      //console.log(`UL test: ${test}, result: ${result}`);
+      //console.log(`ULOL test: ${test}, result: ${result}`);
 
-      if (test) return makeTestResult(UL, result);
+      if (test) return makeTestResult(ULOL, result);
       if (!result) return null;
 
       var content = result[0];
 
-      var LI = /([ ]*)([*-]|\d+\.)[ ]+(.+)/;
+      var ITEM = /([ ]*)([*-]|\d+\.)[ ]+(.+)/;
       var lines = compact(content.split('\n'));
 
 
@@ -221,7 +245,7 @@ var Parser = function () {
 
         while (lineIdx < lines.length) {
           var line = lines[lineIdx];
-          var r = LI.exec(line);
+          var r = ITEM.exec(line);
           if (!r) {
             lineIdx++;
             continue;
@@ -277,7 +301,7 @@ var Parser = function () {
       };
 
       var listNode = visit(0, null);
-      return listNode[0];
+      return listNode;
     }
   }, {
     key: 'matchHeading',
@@ -569,32 +593,32 @@ var Parser = function () {
 
       while (!!s && s.length > 0) {
 
-        var m = this.bestMatch(this.INLINE_MATCHERS, s);
-        if (!m) {
+        var _m = this.bestMatch(this.INLINE_MATCHERS, s);
+        if (!_m) {
           matched.push(s);
           break;
         }
 
-        if (m.testResult.index > 0) {
-          var plain = s.substring(0, m.testResult.index);
+        if (_m.testResult.index > 0) {
+          var plain = s.substring(0, _m.testResult.index);
 
           matched.push(plain);
         }
 
         // best matched로 실제 parse
-        var el = m.matcher(s, false);
+        var el = _m.matcher(s, false);
 
 
-        // 이제 안으로 들어간다
+        // apply inline parser to child
         // inline은 하나의 string에서 여러 el을 만들지 않기 때문에 모두 들어갈 필요는 없다.
         var hasAttr = R.type(el[1]) == 'Object';
         var child = hasAttr ? el[2] : el[1];
         var childEl = void 0;
-        if (!m.terminal && !!child) {
+        if (!_m.terminal && !!child) {
           childEl = this._parseInline(child, depth + 1);
         }
 
-        var lastIndex = m.testResult.lastIndex;
+        var lastIndex = _m.testResult.lastIndex;
         s = s.substring(lastIndex);
 
         var finalEl = !!childEl ? hasAttr ? [el[0], el[1]].concat(_toConsumableArray(childEl)) : [el[0]].concat(_toConsumableArray(childEl)) : el;
@@ -624,6 +648,9 @@ var Parser = function () {
 
   return Parser;
 }();
+
+// FIXME extract to util.js
+
 
 function concatLast(ar, e) {
   if (ar.length > 0) {

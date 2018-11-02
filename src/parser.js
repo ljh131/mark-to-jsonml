@@ -29,6 +29,8 @@ class HeadingCounter {
   }
 }
 
+// FIXME introduce Matcher and extract matchers
+// FIXME fix matchers to return { testParse: function, parse: function } instead returns test result and parse result
 class Parser {
   constructor(opt) {
     this.option = R.merge({
@@ -77,6 +79,16 @@ class Parser {
     this.headingCounter = new HeadingCounter();
   }
 
+  /**
+   * Add block element parser
+   *
+   * @param {blockParser} function blockParser(string, test)
+   *
+   * More about blockParser:
+   *
+   * blockParser should returns regex test result (use simply makeTestResult) if test=true and returns parsed jsonml array element if test=false.
+   * You could return multiple JsonML elements if necessary.
+   */
   addBlockParser(blockParser, isTerminal=false) {
     this.BLOCK_MATCHERS.push({matcher: blockParser, terminal: isTerminal});
   }
@@ -113,19 +125,25 @@ class Parser {
 
       // best matched로 실제 parse
       // FIXME el could be null (테스트에서는 가능했지만 실제 파싱이 불가능한 경우?)
-      const el = m.matcher(s, false);
+      let els = m.matcher(s, false);
 
-      console.log(`MATCHER ${m.matcher.name}, parse result: ${inspect(el)}`);
+      if(R.type(els[0]) != "Array") {
+        els = [els];
+      }
+
+      console.log(`MATCHER ${m.matcher.name}, parse result: ${inspect(els)}`);
+
+      els.forEach(el => {
+        // traverse하며 inline parse를 적용한다.
+        const inlinedEl = m.terminal ? el : this.parseInline(el);
+        console.log(`INLINE PARSED: ${inspect(inlinedEl)}`);
+
+        // root parse tree에 추가한다.
+        parsed.push(inlinedEl);
+      });
 
       const lastIndex = m.testResult.lastIndex;
       s = s.substring(lastIndex);
-
-      // traverse하며 inline parse를 적용한다.
-      const inlinedEl = m.terminal ? el : this.parseInline(el);
-      console.log(`INLINE PARSED: ${inspect(inlinedEl)}`);
-
-      // root parse tree에 추가한다.
-      parsed.push(inlinedEl);
     }
 
     //console.log(`FINALLY PARSED:\n${inspect(parsed)}`);
@@ -178,21 +196,18 @@ class Parser {
     return R.prepend('toc', list);
   }
 
-  /**
-   * @returns regex test result (use simply makeTestResult) if test, parsed jsonml array element if !test
-   */
   matchList(string, test) {
-    const UL = /(^[ ]*([*-]|\d+\.)[ ]+.+\n?)+/gm;
-    const result = UL.exec(string);
+    const ULOL = /(^[ ]*([*-]|\d+\.)[ ]+.+\n?)+/gm;
+    const result = ULOL.exec(string);
 
-    //console.log(`UL test: ${test}, result: ${result}`);
+    //console.log(`ULOL test: ${test}, result: ${result}`);
 
-    if(test) return makeTestResult(UL, result);
+    if(test) return makeTestResult(ULOL, result);
     if(!result) return null;
 
     const content = result[0];
 
-    const LI = /([ ]*)([*-]|\d+\.)[ ]+(.+)/;
+    const ITEM = /([ ]*)([*-]|\d+\.)[ ]+(.+)/;
     const lines = compact(content.split('\n'));
     console.log(`list lines: '${inspect(lines)}'`);
 
@@ -205,7 +220,7 @@ class Parser {
 
       while(lineIdx < lines.length) {
         const line = lines[lineIdx];
-        const r = LI.exec(line);
+        const r = ITEM.exec(line);
         if(!r) {
           lineIdx++; 
           continue;
@@ -267,7 +282,7 @@ class Parser {
     };
 
     const listNode = visit(0, null);
-    return listNode[0];
+    return listNode;
   }
 
   matchHeading(string, test) {
@@ -562,7 +577,7 @@ class Parser {
       const el = m.matcher(s, false);
       console.log(`inline - d${depth} intermediate parsed: ${inspect(el)}`);
 
-      // 이제 안으로 들어간다
+      // apply inline parser to child
       // inline은 하나의 string에서 여러 el을 만들지 않기 때문에 모두 들어갈 필요는 없다.
       const hasAttr = R.type(el[1]) == 'Object';
       const child = hasAttr ? el[2] : el[1];
@@ -601,6 +616,7 @@ class Parser {
 
 }
 
+// FIXME extract to util.js
 function concatLast(ar, e) {
   if(ar.length > 0) {
     const lastidx = ar.length - 1;
