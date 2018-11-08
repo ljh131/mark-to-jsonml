@@ -96,17 +96,17 @@ class Parser {
       // 먼저 test모드로 돌려본다.
       console.log(`BEGIN test match string: '${s}'`);
 
-      const m = this.bestMatch(this.BLOCK_MATCHERS, s);
+      const m = this._bestMatch(this.BLOCK_MATCHERS, s);
       if(!m) {
         console.log(`no match: `, s);
-        this.addParagraph(parsed, s);
+        this._addParagraph(parsed, s);
         break;
       }
 
       if(m.testResult.index > 0) {
         const plain = s.substring(0, m.testResult.index);
         console.log(`no matched as plain: '${plain}'`);
-        this.addParagraph(parsed, plain);
+        this._addParagraph(parsed, plain);
       }
 
       // best matched로 실제 parse
@@ -182,7 +182,11 @@ class Parser {
     return R.prepend('toc', list);
   }
 
-  bestMatch(matchers, string) {
+  parseInline(el) {
+    return this._applyOnTreePlains(el, this._parseInline.bind(this));
+  }
+
+  _bestMatch(matchers, string) {
     const candidatesResults = matchers.map((m) => {
       const testResult = m.matcher(string, true);
       console.log(`MATCHER ${m.matcher.name}, test result: ${inspect(testResult)}`);
@@ -206,10 +210,6 @@ class Parser {
     }, { testResult: { index: string.length }});
 
     return bestMatched;
-  }
-
-  parseInline(el) {
-    return this._applyOnTreePlains(el, this._parseInline.bind(this));
   }
 
   /*
@@ -247,7 +247,7 @@ class Parser {
     while(!!s && s.length > 0) {
       console.log(`inline - d${depth} begin match: '${s}'`);
 
-      const m = this.bestMatch(this.INLINE_MATCHERS, s);
+      const m = this._bestMatch(this.INLINE_MATCHERS, s);
       if(!m) {
         console.log(`inline - d${depth} no match`);
         matched.push(s);
@@ -290,7 +290,7 @@ class Parser {
     return matched;
   }
 
-  addParagraph(parsed, text) {
+  _addParagraph(parsed, text) {
     const paras = text.split("\n\n").map(((s) => {
       let para = null;
       s = s.trim();
