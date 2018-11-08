@@ -29,7 +29,7 @@ class Parser {
     const matchUnderscore = this.makeBasicInlineMatcher(/_+(.+?)_+/g, { tag: 'u' });
     const matchInlineCode = this.makeBasicInlineMatcher(/`(.+?)`/g, { tag: 'code' });
 
-    this.BLOCK_MATCHERS = [
+    this.blockMatchers = [
       { matcher: this.matcher.matchHeading }, 
       { matcher: this.matcher.matchRuler }, 
       { matcher: this.matcher.matchList }, 
@@ -38,7 +38,7 @@ class Parser {
       { matcher: this.matcher.matchCode, terminal: true }
     ];
 
-    this.INLINE_MATCHERS = compact([
+    this.inlineMatchers = compact([
       { matcher: matchStrike }, 
       { matcher: matchBold },
       { matcher: matchItalic }, 
@@ -78,11 +78,11 @@ class Parser {
    * You could return multiple JsonML elements if necessary.
    */
   addBlockParser(blockParser, isTerminal=false) {
-    this.BLOCK_MATCHERS.push({matcher: blockParser, terminal: isTerminal});
+    this.blockMatchers.push({matcher: blockParser, terminal: isTerminal});
   }
 
   addInlineParser(inlineParser, isTerminal=false) {
-    this.INLINE_MATCHERS.push({matcher: inlineParser, terminal: isTerminal});
+    this.inlineMatchers.push({matcher: inlineParser, terminal: isTerminal});
   }
 
   parse(mdtext) {
@@ -96,7 +96,7 @@ class Parser {
       // 먼저 test모드로 돌려본다.
       console.log(`BEGIN test match string: '${s}'`);
 
-      const m = this._bestMatch(this.BLOCK_MATCHERS, s);
+      const m = this._bestMatch(this.blockMatchers, s);
       if(!m) {
         console.log(`no match: `, s);
         this._addParagraph(parsed, s);
@@ -247,7 +247,7 @@ class Parser {
     while(!!s && s.length > 0) {
       console.log(`inline - d${depth} begin match: '${s}'`);
 
-      const m = this._bestMatch(this.INLINE_MATCHERS, s);
+      const m = this._bestMatch(this.inlineMatchers, s);
       if(!m) {
         console.log(`inline - d${depth} no match`);
         matched.push(s);

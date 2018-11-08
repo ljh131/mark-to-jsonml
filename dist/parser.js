@@ -52,7 +52,7 @@ class Parser {
     const matchInlineCode = this.makeBasicInlineMatcher(/`(.+?)`/g, {
       tag: 'code'
     });
-    this.BLOCK_MATCHERS = [{
+    this.blockMatchers = [{
       matcher: this.matcher.matchHeading
     }, {
       matcher: this.matcher.matchRuler
@@ -66,7 +66,7 @@ class Parser {
       matcher: this.matcher.matchCode,
       terminal: true
     }];
-    this.INLINE_MATCHERS = compact([{
+    this.inlineMatchers = compact([{
       matcher: matchStrike
     }, {
       matcher: matchBold
@@ -110,14 +110,14 @@ class Parser {
 
 
   addBlockParser(blockParser, isTerminal = false) {
-    this.BLOCK_MATCHERS.push({
+    this.blockMatchers.push({
       matcher: blockParser,
       terminal: isTerminal
     });
   }
 
   addInlineParser(inlineParser, isTerminal = false) {
-    this.INLINE_MATCHERS.push({
+    this.inlineMatchers.push({
       matcher: inlineParser,
       terminal: isTerminal
     });
@@ -130,7 +130,7 @@ class Parser {
 
     while (!!s && s.length > 0) {
       // 먼저 test모드로 돌려본다.
-      const m = this._bestMatch(this.BLOCK_MATCHERS, s);
+      const m = this._bestMatch(this.blockMatchers, s);
 
       if (!m) {
         this._addParagraph(parsed, s);
@@ -276,7 +276,7 @@ class Parser {
     if (s === '') return [''];
 
     while (!!s && s.length > 0) {
-      const m = this._bestMatch(this.INLINE_MATCHERS, s);
+      const m = this._bestMatch(this.inlineMatchers, s);
 
       if (!m) {
         matched.push(s);
