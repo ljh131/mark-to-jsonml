@@ -107,8 +107,8 @@ class BasicMatcher {
 
   @boundMethod
   matchHeading(string, test) {
-    const H = buildRe(/^(#+)[ ]*(.*)/gm);
-    let result = H.exec(string, false);
+    const H = /^(#+)[ ]*(.*)/gm;
+    let result = H.exec(string);
     if(!result) return null;
 
     if(test) return makeTestResult(H, result);
