@@ -1,5 +1,4 @@
 const R = require('ramda');
-//const autobind = require('autobind-decorator');
 const { boundMethod } = require('autobind-decorator');
 
 const { HeadingCounter } = require('./heading_counter');

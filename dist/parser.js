@@ -130,16 +130,18 @@ class Parser {
 
     while (!!s && s.length > 0) {
       // 먼저 test모드로 돌려본다.
-      const m = this.bestMatch(this.BLOCK_MATCHERS, s);
+      const m = this._bestMatch(this.BLOCK_MATCHERS, s);
 
       if (!m) {
-        this.addParagraph(parsed, s);
+        this._addParagraph(parsed, s);
+
         break;
       }
 
       if (m.testResult.index > 0) {
         const plain = s.substring(0, m.testResult.index);
-        this.addParagraph(parsed, plain);
+
+        this._addParagraph(parsed, plain);
       } // best matched로 실제 parse
       // FIXME el could be null (테스트에서는 가능했지만 실제 파싱이 불가능한 경우?)
 
@@ -207,7 +209,11 @@ class Parser {
     return R.prepend('toc', list);
   }
 
-  bestMatch(matchers, string) {
+  parseInline(el) {
+    return this._applyOnTreePlains(el, this._parseInline.bind(this));
+  }
+
+  _bestMatch(matchers, string) {
     const candidatesResults = matchers.map(m => {
       const testResult = m.matcher(string, true);
       if (!testResult) return null;
@@ -235,10 +241,6 @@ class Parser {
       }
     });
     return bestMatched;
-  }
-
-  parseInline(el) {
-    return this._applyOnTreePlains(el, this._parseInline.bind(this));
   }
   /*
    * tree를 순회하면서 plain에 대해 applyfn을 적용한다.
@@ -274,7 +276,7 @@ class Parser {
     if (s === '') return [''];
 
     while (!!s && s.length > 0) {
-      const m = this.bestMatch(this.INLINE_MATCHERS, s);
+      const m = this._bestMatch(this.INLINE_MATCHERS, s);
 
       if (!m) {
         matched.push(s);
@@ -307,7 +309,7 @@ class Parser {
     return matched;
   }
 
-  addParagraph(parsed, text) {
+  _addParagraph(parsed, text) {
     const paras = text.split("\n\n").map(s => {
       let para = null;
       s = s.trim();

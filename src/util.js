@@ -11,7 +11,6 @@ function buildRe(re) {
   return re;
 }
 
-// FIXME rename to makeParseInfo
 /**
  * low priority value means higher priority. built-in parser use 0
  */
