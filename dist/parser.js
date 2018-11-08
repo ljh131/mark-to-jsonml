@@ -9,6 +9,18 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 var R = require('ramda');
 var util = require('util');
 
+function buildRe(re) {
+  var _exec = re.exec;
+  re.exec = function (string) {
+    var resetLastIndexBefore = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
+
+    if (re.global && resetLastIndexBefore) re.lastIndex = 0;
+    var m = _exec.call(re, string);
+    return m;
+  };
+  return re;
+}
+
 var HeadingCounter = function () {
   function HeadingCounter() {
     _classCallCheck(this, HeadingCounter);
@@ -82,6 +94,8 @@ var Parser = function () {
     });
 
     this.headingCounter = new HeadingCounter();
+
+    this.option.footnotePattern = buildRe(this.option.footnotePattern);
   }
 
   /**
@@ -224,11 +238,9 @@ var Parser = function () {
     value: function matchList(string, test) {
       var ULOL = /(^[ ]*([*-]|\d+\.)[ ]+.+\n?)+/gm;
       var result = ULOL.exec(string);
-
-      //console.log(`ULOL test: ${test}, result: ${result}`);
+      if (!result) return null;
 
       if (test) return makeTestResult(ULOL, result);
-      if (!result) return null;
 
       var content = result[0];
 
@@ -306,11 +318,11 @@ var Parser = function () {
   }, {
     key: 'matchHeading',
     value: function matchHeading(string, test) {
-      var H = /^(#+)[ ]*(.*)/gm;
-      var result = H.exec(string);
+      var H = buildRe(/^(#+)[ ]*(.*)/gm);
+      var result = H.exec(string, false);
+      if (!result) return null;
 
       if (test) return makeTestResult(H, result);
-      if (!result) return null;
 
       var level = result[1].length;
       var title = result[2] || '';
@@ -324,9 +336,9 @@ var Parser = function () {
     value: function matchRuler(string, test) {
       var HR = /^(-|=|_){3,}$/gm;
       var result = HR.exec(string);
+      if (!result) return null;
 
       if (test) return makeTestResult(HR, result);
-      if (!result) return null;
 
       return ['hr'];
     }
@@ -335,9 +347,9 @@ var Parser = function () {
     value: function matchBlockQuote(string, test) {
       var BLOCK = /(^>.*\n?)+/gm;
       var result = BLOCK.exec(string);
+      if (!result) return null;
 
       if (test) return makeTestResult(BLOCK, result);
-      if (!result) return null;
 
       var content = result[0];
 
@@ -354,11 +366,11 @@ var Parser = function () {
   }, {
     key: 'matchCode',
     value: function matchCode(string, test) {
-      var CODE = /^\`\`\`(.*)([^]+?)^\`\`\`/gm;
+      var CODE = /^```(.*)([^]+?)^```/gm;
       var result = CODE.exec(string);
+      if (!result) return null;
 
       if (test) return makeTestResult(CODE, result);
-      if (!result) return null;
 
       var lang = result[1].trim();
       var content = result[2].replace(/^\n/, '');
@@ -370,9 +382,9 @@ var Parser = function () {
     value: function matchTable(string, test) {
       var TABLE = /(^((\|[^\n]*)+\|$)\n?)+/gm;
       var result = TABLE.exec(string);
+      if (!result) return null;
 
       if (test) return makeTestResult(TABLE, result);
-      if (!result) return null;
 
       var content = result[0];
       var extractTds = function extractTds(line) {
@@ -429,25 +441,19 @@ var Parser = function () {
       return th ? ['table', ['thead', th], R.unnest(['tbody', trs])] : ['table', R.unnest(['tbody', trs])];
     }
   }, {
-    key: 'execInlineRegex',
-    value: function execInlineRegex(re, string) {
-      if (!re.global) throw "error: inline regex should have global option";
-      re.lastIndex = 0;
-      return re.exec(string);
-    }
-  }, {
     key: 'matchLink',
     value: function matchLink(string, test) {
       var LINK = /\[(.+?)\](?:\(([^\s]+?)\))?|(https?:\/\/[^\s]+)/g;
-      var result = this.execInlineRegex(LINK, string);
-      if (test) return makeTestResult(LINK, result);
+      var result = LINK.exec(string);
       if (!result) return null;
+
+      if (test) return makeTestResult(LINK, result);
 
       var title = result[1];
       var href = result[2];
       var urlonly = result[3];
 
-      if (!!urlonly) {
+      if (urlonly) {
         return ['a', { href: urlonly, isAutoLink: true }, urlonly];
       } else {
         if (href) {
@@ -461,9 +467,11 @@ var Parser = function () {
   }, {
     key: 'matchFootnote',
     value: function matchFootnote(string, test) {
-      var result = this.execInlineRegex(this.option.footnotePattern, string);
-      if (test) return makeTestResult(this.option.footnotePattern, result, -1);
+      var FOOTNOTE = this.option.footnotePattern;
+      var result = FOOTNOTE.exec(string);
       if (!result) return null;
+
+      if (test) return makeTestResult(FOOTNOTE, result, -1);
 
       var id = this.footnoteCounter++;
       var title = result[1] || id;
@@ -478,41 +486,16 @@ var Parser = function () {
 
       return ['footnote', meta, title];
     }
-
-    /*
-    matchLinkAndImage(string, test) {
-      const LINK = /\[(.+?)\]\(([^\s]+?)\)|(https?:\/\/[^\s]+)/g;
-      let result = LINK.exec(string);
-       if(test) return makeTestResult(LINK, result);
-      if(!result) return null;
-       const title = result[1];
-      const href = result[2];
-      const url = result[3];
-       if(!!url) {
-        // image
-        if(/\.(bmp|png|jpg|jpeg|tiff|gif)$/.test(url)) {
-          return ['img', { src: url }];
-        } else if(/\.(mp4|ogg)$/.test(url)) {
-          return ['video', { src: url }];
-        } else {
-          return ['a', { href: url }, url.replace(/https?:\/\//, '')];
-        }
-      } else {
-        return ['a', { href }, title];
-      }
-    }
-    */
-
   }, {
     key: 'makeBasicInlineMatcher',
     value: function makeBasicInlineMatcher(re, attr) {
-      var _this3 = this;
+      re = buildRe(re);
 
       return function (string, test) {
-        var result = _this3.execInlineRegex(re, string);
+        var result = re.exec(string);
+        if (!result) return null;
 
         if (test) return makeTestResult(re, result);
-        if (!result) return null;
 
         var outer = result[0];
         var inner = result[1];
@@ -562,7 +545,7 @@ var Parser = function () {
   }, {
     key: '_applyOnTreePlains',
     value: function _applyOnTreePlains(ar, applyfn) {
-      var _this4 = this;
+      var _this3 = this;
 
       return R.unnest(R.prepend(ar[0], ar.slice(1).map(function (e) {
         if (R.type(e) == 'String') {
@@ -570,7 +553,7 @@ var Parser = function () {
         } else if (R.type(e) == 'Array') {
           // 이건 unnest되면 안되니 []로 감싸준다.
           // FIXME 더 좋은 방법이 없을까?
-          return [_this4._applyOnTreePlains(e, applyfn)];
+          return [_this3._applyOnTreePlains(e, applyfn)];
         } else {
           return e;
         }
@@ -621,7 +604,7 @@ var Parser = function () {
         var lastIndex = _m.testResult.lastIndex;
         s = s.substring(lastIndex);
 
-        var finalEl = !!childEl ? hasAttr ? [el[0], el[1]].concat(_toConsumableArray(childEl)) : [el[0]].concat(_toConsumableArray(childEl)) : el;
+        var finalEl = childEl ? hasAttr ? [el[0], el[1]].concat(_toConsumableArray(childEl)) : [el[0]].concat(_toConsumableArray(childEl)) : el;
 
 
         matched.push(finalEl);
@@ -632,13 +615,13 @@ var Parser = function () {
   }, {
     key: 'addParagraph',
     value: function addParagraph(parsed, text) {
-      var _this5 = this;
+      var _this4 = this;
 
       var paras = text.split("\n\n").map(function (s) {
         var para = null;
         s = s.trim();
         if (s.length > 0 && s != '\n') {
-          para = _this5.parseInline(['p', s]);
+          para = _this4.parseInline(['p', s]);
         }
         return para;
       });
@@ -676,7 +659,7 @@ function inspect(o) {
 function makeTestResult(re, result) {
   var priority = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
 
-  return !!result ? R.merge({ lastIndex: re.lastIndex, priority: priority }, result) : null;
+  return result ? R.merge({ lastIndex: re.lastIndex, priority: priority }, result) : null;
 }
 
 function getParsedProp(parsed) {
