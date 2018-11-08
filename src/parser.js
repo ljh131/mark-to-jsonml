@@ -1,6 +1,16 @@
 const R = require('ramda');
 const util = require('util');
 
+function buildRe(re) {
+  const _exec = re.exec;
+  re.exec = (string, resetLastIndexBefore=true) => {
+    if(re.global && resetLastIndexBefore) re.lastIndex = 0;
+    const m = _exec.call(re, string);
+    return m;
+  }
+  return re;
+}
+
 class HeadingCounter {
   constructor() {
     this.init();
@@ -77,6 +87,8 @@ class Parser {
     });
 
     this.headingCounter = new HeadingCounter();
+
+    this.option.footnotePattern = buildRe(this.option.footnotePattern);
   }
 
   /**
@@ -199,11 +211,9 @@ class Parser {
   matchList(string, test) {
     const ULOL = /(^[ ]*([*-]|\d+\.)[ ]+.+\n?)+/gm;
     const result = ULOL.exec(string);
-
-    //console.log(`ULOL test: ${test}, result: ${result}`);
+    if(!result) return null;
 
     if(test) return makeTestResult(ULOL, result);
-    if(!result) return null;
 
     const content = result[0];
 
@@ -286,11 +296,11 @@ class Parser {
   }
 
   matchHeading(string, test) {
-    const H = /^(#+)[ ]*(.*)/gm;
-    let result = H.exec(string);
+    const H = buildRe(/^(#+)[ ]*(.*)/gm);
+    let result = H.exec(string, false);
+    if(!result) return null;
 
     if(test) return makeTestResult(H, result);
-    if(!result) return null;
 
     const level = result[1].length;
     const title = result[2] || '';
@@ -303,9 +313,9 @@ class Parser {
   matchRuler(string, test) {
     const HR = /^(-|=|_){3,}$/gm;
     let result = HR.exec(string);
+    if(!result) return null;
 
     if(test) return makeTestResult(HR, result);
-    if(!result) return null;
 
     return ['hr'];
   }
@@ -313,9 +323,9 @@ class Parser {
   matchBlockQuote(string, test) {
     const BLOCK = /(^>.*\n?)+/gm;
     let result = BLOCK.exec(string);
+    if(!result) return null;
 
     if(test) return makeTestResult(BLOCK, result);
-    if(!result) return null;
 
     const content = result[0];
 
@@ -331,11 +341,11 @@ class Parser {
   }
 
   matchCode(string, test) {
-    const CODE = /^\`\`\`(.*)([^]+?)^\`\`\`/gm;
+    const CODE = /^```(.*)([^]+?)^```/gm;
     let result = CODE.exec(string);
+    if(!result) return null;
 
     if(test) return makeTestResult(CODE, result);
-    if(!result) return null;
 
     const lang = result[1].trim();
     const content = result[2].replace(/^\n/, '');
@@ -346,9 +356,9 @@ class Parser {
   matchTable(string, test) {
     const TABLE = /(^((\|[^\n]*)+\|$)\n?)+/gm;
     const result = TABLE.exec(string);
+    if(!result) return null;
 
     if(test) return makeTestResult(TABLE, result);
-    if(!result) return null;
 
     const content = result[0];
     const extractTds = (line, seperator=/\|/) => {
@@ -403,23 +413,18 @@ class Parser {
         ['table', R.unnest(['tbody', trs])];
   }
 
-  execInlineRegex(re, string) {
-    if(!re.global) throw "error: inline regex should have global option";
-    re.lastIndex = 0;
-    return re.exec(string);
-  }
-
   matchLink(string, test) {
     const LINK = /\[(.+?)\](?:\(([^\s]+?)\))?|(https?:\/\/[^\s]+)/g;
-    let result = this.execInlineRegex(LINK, string);
-    if(test) return makeTestResult(LINK, result);
+    let result = LINK.exec(string);
     if(!result) return null;
+
+    if(test) return makeTestResult(LINK, result);
 
     const title = result[1];
     const href = result[2];
     const urlonly = result[3];
 
-    if(!!urlonly) {
+    if(urlonly) {
       return ['a', { href: urlonly, isAutoLink: true }, urlonly];
     } else {
       if(href) {
@@ -432,9 +437,11 @@ class Parser {
   }
 
   matchFootnote(string, test) {
-    let result = this.execInlineRegex(this.option.footnotePattern, string);
-    if(test) return makeTestResult(this.option.footnotePattern, result, -1);
+    const FOOTNOTE = this.option.footnotePattern;
+    let result = FOOTNOTE.exec(string);
     if(!result) return null;
+
+    if(test) return makeTestResult(FOOTNOTE, result, -1);
 
     const id = this.footnoteCounter++;
     const title = result[1] || id;
@@ -450,39 +457,14 @@ class Parser {
     return ['footnote', meta, title];
   }
 
-  /*
-  matchLinkAndImage(string, test) {
-    const LINK = /\[(.+?)\]\(([^\s]+?)\)|(https?:\/\/[^\s]+)/g;
-    let result = LINK.exec(string);
-
-    if(test) return makeTestResult(LINK, result);
-    if(!result) return null;
-
-    const title = result[1];
-    const href = result[2];
-    const url = result[3];
-
-    if(!!url) {
-      // image
-      if(/\.(bmp|png|jpg|jpeg|tiff|gif)$/.test(url)) {
-        return ['img', { src: url }];
-      } else if(/\.(mp4|ogg)$/.test(url)) {
-        return ['video', { src: url }];
-      } else {
-        return ['a', { href: url }, url.replace(/https?:\/\//, '')];
-      }
-    } else {
-      return ['a', { href }, title];
-    }
-  }
-  */
-
   makeBasicInlineMatcher(re, attr) {
+    re = buildRe(re);
+
     return (string, test) => {
-      let result = this.execInlineRegex(re, string);
+      let result = re.exec(string);
+      if(!result) return null;
 
       if(test) return makeTestResult(re, result);
-      if(!result) return null;
 
       const outer = result[0];
       const inner = result[1];
@@ -590,7 +572,7 @@ class Parser {
       const lastIndex = m.testResult.lastIndex;
       s = s.substring(lastIndex);
 
-      const finalEl = !!childEl ? 
+      const finalEl = childEl ? 
         (hasAttr ? [el[0], el[1], ...childEl] : [el[0], ...childEl]) : 
         el;
       console.log(`inline - d${depth} PARSED: ${inspect(finalEl)}`);
@@ -639,7 +621,8 @@ function inspect(o) {
  * low priority value means higher priority. built-in parser use 0
  */
 function makeTestResult(re, result, priority=0) {
-  return !!result ? R.merge({ lastIndex: re.lastIndex, priority }, result) : null;
+  return result ? 
+    R.merge({ lastIndex: re.lastIndex, priority }, result) : null;
 }
 
 function getParsedProp(parsed) {
