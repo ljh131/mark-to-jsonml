@@ -117,7 +117,7 @@ class BasicMatcher {
     const title = result[2] || '';
     const number = this.headingCounter.increase(level);
 
-    const prop = R.merge(this.option.headingNumber ? { number } : {}, { level });
+    const prop = R.merge(this.option.includeHeadingNumber ? { number } : {}, { level });
     return ['h', prop, title];
   }
 
