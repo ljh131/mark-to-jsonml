@@ -8,7 +8,7 @@ class Parser {
   constructor(opt) {
     this.option = R.merge({
       includeRoot: true, // parse시 'markdown' tag와 prop을 붙인다.
-      headingNumber: true, // heading의 prop에 number로 번호를 붙인다.
+      includeHeadingNumber: true, // heading의 prop에 number로 번호를 붙인다.
       parseToc: false, // tocPattern을 목차로 바꾼다.
       parseFootnote: false, // footnotePattern을 각주로 바꾼다.
       tocPattern: /^{toc}$/, // 목차 패턴
@@ -18,7 +18,7 @@ class Parser {
     console.log(`parser option: ${inspect(this.option)}`);
 
     this.matcher = new BasicMatcher({
-      headingNumber: this.option.headingNumber,
+      includeHeadingNumber: this.option.includeHeadingNumber,
       footnotePattern: buildRe(this.option.footnotePattern),
     });
 
@@ -67,16 +67,6 @@ class Parser {
     }
   }
 
-  /**
-   * Add block element parser
-   *
-   * @param {blockParser} function blockParser(string, test)
-   *
-   * More about blockParser:
-   *
-   * blockParser should returns regex test result (use simply makeTestResult) if test=true and returns parsed jsonml array element if test=false.
-   * You could return multiple JsonML elements if necessary.
-   */
   addBlockParser(blockParser, isTerminal=false) {
     this.blockMatchers.push({matcher: blockParser, terminal: isTerminal});
   }

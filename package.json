@@ -26,7 +26,7 @@
     "build": "npm run lint && npm run transpile",
     "pretest": "npm run build",
     "test": "mocha",
-    "sandbox": "babel src --out-dir sandbox && node sandbox.js",
+    "sandbox": "babel src --out-dir sandbox && node",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
