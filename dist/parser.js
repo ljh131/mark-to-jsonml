@@ -1,23 +1,40 @@
-const R = require('ramda');
+"use strict";
 
-const {
-  buildRe,
-  makeTestResult,
-  compact,
-  inspect,
-  getParsedProp
-} = require('./util');
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread(); }
 
-const {
-  BasicMatcher
-} = require('./basic_matcher');
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance"); }
 
-const {
-  HeadingCounter
-} = require('./heading_counter');
+function _iterableToArray(iter) { if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter); }
 
-class Parser {
-  constructor(opt) {
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+var R = require('ramda');
+
+var _require = require('./util'),
+    buildRe = _require.buildRe,
+    makeTestResult = _require.makeTestResult,
+    compact = _require.compact,
+    inspect = _require.inspect,
+    getParsedProp = _require.getParsedProp;
+
+var _require2 = require('./basic_matcher'),
+    BasicMatcher = _require2.BasicMatcher;
+
+var _require3 = require('./heading_counter'),
+    HeadingCounter = _require3.HeadingCounter;
+
+var Parser =
+/*#__PURE__*/
+function () {
+  function Parser(opt) {
+    _classCallCheck(this, Parser);
+
     this.option = R.merge({
       includeRoot: true,
       // parse시 'markdown' tag와 prop을 붙인다.
@@ -37,19 +54,19 @@ class Parser {
       footnotePattern: buildRe(this.option.footnotePattern)
     }); // NOTE: inline regex should have `global` option
 
-    const matchStrike = this.makeBasicInlineMatcher(/~+(.+?)~+/g, {
+    var matchStrike = this.makeBasicInlineMatcher(/~+(.+?)~+/g, {
       tag: 's'
     });
-    const matchBold = this.makeBasicInlineMatcher(/\*{2,}(.+?)\*{2,}/g, {
+    var matchBold = this.makeBasicInlineMatcher(/\*{2,}(.+?)\*{2,}/g, {
       tag: 'b'
     });
-    const matchItalic = this.makeBasicInlineMatcher(/\*(.+?)\*/g, {
+    var matchItalic = this.makeBasicInlineMatcher(/\*(.+?)\*/g, {
       tag: 'i'
     });
-    const matchUnderscore = this.makeBasicInlineMatcher(/_+(.+?)_+/g, {
+    var matchUnderscore = this.makeBasicInlineMatcher(/_+(.+?)_+/g, {
       tag: 'u'
     });
-    const matchInlineCode = this.makeBasicInlineMatcher(/`(.+?)`/g, {
+    var matchInlineCode = this.makeBasicInlineMatcher(/`(.+?)`/g, {
       tag: 'code'
     });
     this.blockMatchers = [{
@@ -86,237 +103,266 @@ class Parser {
     } : null]);
   }
 
-  makeBasicInlineMatcher(re, attr) {
-    re = buildRe(re);
-    return (string, test) => {
-      let result = re.exec(string);
-      if (!result) return null;
-      if (test) return makeTestResult(re, result);
-      const outer = result[0];
-      const inner = result[1];
-      return [attr.tag, inner];
-    };
-  }
-
-  addBlockParser(blockParser, isTerminal = false) {
-    this.blockMatchers.push({
-      matcher: blockParser,
-      terminal: isTerminal
-    });
-  }
-
-  addInlineParser(inlineParser, isTerminal = false) {
-    this.inlineMatchers.push({
-      matcher: inlineParser,
-      terminal: isTerminal
-    });
-  }
-
-  parse(mdtext) {
-    this.matcher.init();
-    let parsed = [];
-    let s = mdtext;
-
-    while (!!s && s.length > 0) {
-      // 먼저 test모드로 돌려본다.
-      const m = this._bestMatch(this.blockMatchers, s);
-
-      if (!m) {
-        this._addParagraph(parsed, s);
-
-        break;
-      }
-
-      if (m.testResult.index > 0) {
-        const plain = s.substring(0, m.testResult.index);
-
-        this._addParagraph(parsed, plain);
-      } // best matched로 실제 parse
-      // FIXME el could be null (테스트에서는 가능했지만 실제 파싱이 불가능한 경우?)
-
-
-      let els = m.matcher(s, false);
-
-      if (R.type(els[0]) != "Array") {
-        els = [els];
-      }
-
-      els.forEach(el => {
-        // traverse하며 inline parse를 적용한다.
-        const inlinedEl = m.terminal ? el : this.parseInline(el);
-        // root parse tree에 추가한다.
-        parsed.push(inlinedEl);
+  _createClass(Parser, [{
+    key: "makeBasicInlineMatcher",
+    value: function makeBasicInlineMatcher(re, attr) {
+      re = buildRe(re);
+      return function (string, test) {
+        var result = re.exec(string);
+        if (!result) return null;
+        if (test) return makeTestResult(re, result);
+        var outer = result[0];
+        var inner = result[1];
+        return [attr.tag, inner];
+      };
+    }
+  }, {
+    key: "addBlockParser",
+    value: function addBlockParser(blockParser) {
+      var isTerminal = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+      this.blockMatchers.push({
+        matcher: blockParser,
+        terminal: isTerminal
       });
-      const lastIndex = m.testResult.lastIndex;
-      s = s.substring(lastIndex);
-    } //console.log(`FINALLY PARSED:\n${inspect(parsed)}`);
+    }
+  }, {
+    key: "addInlineParser",
+    value: function addInlineParser(inlineParser) {
+      var isTerminal = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+      this.inlineMatchers.push({
+        matcher: inlineParser,
+        terminal: isTerminal
+      });
+    }
+  }, {
+    key: "parse",
+    value: function parse(mdtext) {
+      var _this = this;
+
+      this.matcher.init();
+      var parsed = [];
+      var s = mdtext;
+
+      var _loop = function _loop() {
+        // 먼저 test모드로 돌려본다.
+        var m = _this._bestMatch(_this.blockMatchers, s);
+
+        if (!m) {
+          _this._addParagraph(parsed, s);
+
+          return "break";
+        }
+
+        if (m.testResult.index > 0) {
+          var plain = s.substring(0, m.testResult.index);
+
+          _this._addParagraph(parsed, plain);
+        } // best matched로 실제 parse
+        // FIXME el could be null (테스트에서는 가능했지만 실제 파싱이 불가능한 경우?)
 
 
-    let tocParsed = false;
+        var els = m.matcher(s, false);
 
-    if (this.option.parseToc) {
-      const toc = this.parseToc(parsed); //console.log(`PARSED TOC:\n${inspect(toc)}`);
+        if (R.type(els[0]) != "Array") {
+          els = [els];
+        }
 
-      parsed = parsed.map(el => {
-        if (el[0] === 'p' && this.option.tocPattern.test(el[1])) {
-          tocParsed = true;
-          return toc;
+        els.forEach(function (el) {
+          // traverse하며 inline parse를 적용한다.
+          var inlinedEl = m.terminal ? el : _this.parseInline(el);
+          // root parse tree에 추가한다.
+          parsed.push(inlinedEl);
+        });
+        var lastIndex = m.testResult.lastIndex;
+        s = s.substring(lastIndex);
+      };
+
+      while (!!s && s.length > 0) {
+        var _ret = _loop();
+
+        if (_ret === "break") break;
+      } //console.log(`FINALLY PARSED:\n${inspect(parsed)}`);
+
+
+      var tocParsed = false;
+
+      if (this.option.parseToc) {
+        var toc = this.parseToc(parsed); //console.log(`PARSED TOC:\n${inspect(toc)}`);
+
+        parsed = parsed.map(function (el) {
+          if (el[0] === 'p' && _this.option.tocPattern.test(el[1])) {
+            tocParsed = true;
+            return toc;
+          } else {
+            return el;
+          }
+        });
+      }
+
+      if (this.matcher.footnotes.length > 0) {
+        var footnotes = R.prepend('footnotes', this.matcher.footnotes);
+        parsed.push(this.parseInline(footnotes));
+      }
+
+      if (this.option.includeRoot) {
+        return R.concat(['markdown', {
+          tocParsed: tocParsed,
+          footnoteParsed: this.option.parseFootnote
+        }], parsed);
+      } else {
+        return parsed;
+      }
+    } // headings를 toc로 만들어준다.
+    // ['toc', ['toc-item', {level: 1, number: '1.'}, 'introduction', ['s', 'intro']], ...]
+
+  }, {
+    key: "parseToc",
+    value: function parseToc(parsed) {
+      var headings = R.filter(function (a) {
+        return R.type(a) === "Array" && R.head(a) === 'h' && a[1].level <= 3;
+      }, R.drop(1, parsed));
+      var counter = new HeadingCounter();
+      var list = headings.map(function (h) {
+        var lev = h[1].level;
+        var num = counter.increase(lev);
+        return R.unnest(['toc-item', {
+          level: lev,
+          number: num
+        }, R.drop(2, h)]);
+      });
+      return R.prepend('toc', list);
+    }
+  }, {
+    key: "parseInline",
+    value: function parseInline(el) {
+      return this._applyOnTreePlains(el, this._parseInline.bind(this));
+    }
+  }, {
+    key: "_bestMatch",
+    value: function _bestMatch(matchers, string) {
+      var candidatesResults = matchers.map(function (m) {
+        var testResult = m.matcher(string, true);
+        if (!testResult) return null;
+        return R.merge({
+          testResult: testResult
+        }, m);
+      });
+
+      if (R.isEmpty(compact(candidatesResults))) {
+        return null;
+      } // 가장 가까이 매치된 것을 선정
+
+
+      var bestMatched = compact(candidatesResults).reduce(function (last, val) {
+        if (val.testResult.index < last.testResult.index) {
+          return val;
+        } else if (val.testResult.index > last.testResult.index) {
+          return last;
         } else {
-          return el;
+          return val.testResult.priority < last.testResult.priority ? val : last;
+        }
+      }, {
+        testResult: {
+          index: string.length
         }
       });
+      return bestMatched;
     }
-
-    if (this.matcher.footnotes.length > 0) {
-      const footnotes = R.prepend('footnotes', this.matcher.footnotes);
-      parsed.push(this.parseInline(footnotes));
-    }
-
-    if (this.option.includeRoot) {
-      return R.concat(['markdown', {
-        tocParsed,
-        footnoteParsed: this.option.parseFootnote
-      }], parsed);
-    } else {
-      return parsed;
-    }
-  } // headings를 toc로 만들어준다.
-  // ['toc', ['toc-item', {level: 1, number: '1.'}, 'introduction', ['s', 'intro']], ...]
-
-
-  parseToc(parsed) {
-    const headings = R.filter(a => R.type(a) === "Array" && R.head(a) === 'h' && a[1].level <= 3, R.drop(1, parsed));
-    const counter = new HeadingCounter();
-    const list = headings.map(h => {
-      const lev = h[1].level;
-      const num = counter.increase(lev);
-      return R.unnest(['toc-item', {
-        level: lev,
-        number: num
-      }, R.drop(2, h)]);
-    });
-    return R.prepend('toc', list);
-  }
-
-  parseInline(el) {
-    return this._applyOnTreePlains(el, this._parseInline.bind(this));
-  }
-
-  _bestMatch(matchers, string) {
-    const candidatesResults = matchers.map(m => {
-      const testResult = m.matcher(string, true);
-      if (!testResult) return null;
-      return R.merge({
-        testResult
-      }, m);
-    });
-
-    if (R.isEmpty(compact(candidatesResults))) {
-      return null;
-    } // 가장 가까이 매치된 것을 선정
-
-
-    const bestMatched = compact(candidatesResults).reduce((last, val) => {
-      if (val.testResult.index < last.testResult.index) {
-        return val;
-      } else if (val.testResult.index > last.testResult.index) {
-        return last;
-      } else {
-        return val.testResult.priority < last.testResult.priority ? val : last;
-      }
-    }, {
-      testResult: {
-        index: string.length
-      }
-    });
-    return bestMatched;
-  }
-  /*
-   * tree를 순회하면서 plain에 대해 applyfn을 적용한다.
-   * ['tag', 'plain', 'plain2', ['t', 'another md']]
-   * ['tag', {attr}, 'plain', 'plain2', ['t', 'another md']]
-   */
-
-
-  _applyOnTreePlains(ar, applyfn) {
-    return R.unnest(R.prepend(ar[0], ar.slice(1).map(e => {
-      if (R.type(e) == 'String') {
-        return applyfn(e);
-      } else if (R.type(e) == 'Array') {
-        // 이건 unnest되면 안되니 []로 감싸준다.
-        // FIXME 더 좋은 방법이 없을까?
-        return [this._applyOnTreePlains(e, applyfn)];
-      } else {
-        return e;
-      }
-    })));
-  }
-
-  _parseInline(s, depth) {
-    if (!depth) depth = 0;
-    const matched = [];
     /*
-    if(R.type(s) != 'String') {
-      console.log(`${s} SHOULD BE STRING FOR INLINE!!!`);
-      return s;
+     * tree를 순회하면서 plain에 대해 applyfn을 적용한다.
+     * ['tag', 'plain', 'plain2', ['t', 'another md']]
+     * ['tag', {attr}, 'plain', 'plain2', ['t', 'another md']]
+     */
+
+  }, {
+    key: "_applyOnTreePlains",
+    value: function _applyOnTreePlains(ar, applyfn) {
+      var _this2 = this;
+
+      return R.unnest(R.prepend(ar[0], ar.slice(1).map(function (e) {
+        if (R.type(e) == 'String') {
+          return applyfn(e);
+        } else if (R.type(e) == 'Array') {
+          // 이건 unnest되면 안되니 []로 감싸준다.
+          // FIXME 더 좋은 방법이 없을까?
+          return [_this2._applyOnTreePlains(e, applyfn)];
+        } else {
+          return e;
+        }
+      })));
     }
-    */
+  }, {
+    key: "_parseInline",
+    value: function _parseInline(s, depth) {
+      if (!depth) depth = 0;
+      var matched = [];
+      /*
+      if(R.type(s) != 'String') {
+        console.log(`${s} SHOULD BE STRING FOR INLINE!!!`);
+        return s;
+      }
+      */
 
-    if (s === '') return [''];
+      if (s === '') return [''];
 
-    while (!!s && s.length > 0) {
-      const m = this._bestMatch(this.inlineMatchers, s);
+      while (!!s && s.length > 0) {
+        var m = this._bestMatch(this.inlineMatchers, s);
 
-      if (!m) {
-        matched.push(s);
-        break;
+        if (!m) {
+          matched.push(s);
+          break;
+        }
+
+        if (m.testResult.index > 0) {
+          var plain = s.substring(0, m.testResult.index);
+          matched.push(plain);
+        }
+
+        // best matched로 실제 parse
+        var el = m.matcher(s, false);
+        // apply inline parser to child
+        // inline은 하나의 string에서 여러 el을 만들지 않기 때문에 모두 들어갈 필요는 없다.
+        var hasAttr = R.type(el[1]) == 'Object';
+        var child = hasAttr ? el[2] : el[1];
+        var childEl = void 0;
+
+        if (!m.terminal && !!child) {
+          childEl = this._parseInline(child, depth + 1);
+        }
+
+        var lastIndex = m.testResult.lastIndex;
+        s = s.substring(lastIndex);
+        var finalEl = childEl ? hasAttr ? [el[0], el[1]].concat(_toConsumableArray(childEl)) : [el[0]].concat(_toConsumableArray(childEl)) : el;
+        matched.push(finalEl);
       }
 
-      if (m.testResult.index > 0) {
-        const plain = s.substring(0, m.testResult.index);
-        matched.push(plain);
-      }
-
-      // best matched로 실제 parse
-      const el = m.matcher(s, false);
-      // apply inline parser to child
-      // inline은 하나의 string에서 여러 el을 만들지 않기 때문에 모두 들어갈 필요는 없다.
-      const hasAttr = R.type(el[1]) == 'Object';
-      const child = hasAttr ? el[2] : el[1];
-      let childEl;
-
-      if (!m.terminal && !!child) {
-        childEl = this._parseInline(child, depth + 1);
-      }
-
-      const lastIndex = m.testResult.lastIndex;
-      s = s.substring(lastIndex);
-      const finalEl = childEl ? hasAttr ? [el[0], el[1], ...childEl] : [el[0], ...childEl] : el;
-      matched.push(finalEl);
+      return matched;
     }
+  }, {
+    key: "_addParagraph",
+    value: function _addParagraph(parsed, text) {
+      var _this3 = this;
 
-    return matched;
-  }
+      var paras = text.split("\n\n").map(function (s) {
+        var para = null;
+        s = s.trim();
 
-  _addParagraph(parsed, text) {
-    const paras = text.split("\n\n").map(s => {
-      let para = null;
-      s = s.trim();
+        if (s.length > 0 && s != '\n') {
+          para = _this3.parseInline(['p', s]);
+        }
 
-      if (s.length > 0 && s != '\n') {
-        para = this.parseInline(['p', s]);
-      }
+        return para;
+      });
+      parsed.push.apply(parsed, _toConsumableArray(compact(paras)));
+    }
+  }]);
 
-      return para;
-    });
-    parsed.push(...compact(paras));
-  }
-
-}
+  return Parser;
+}();
 
 module.exports = {
-  Parser,
-  getParsedProp,
-  makeTestResult,
-  inspect
+  Parser: Parser,
+  getParsedProp: getParsedProp,
+  makeTestResult: makeTestResult,
+  inspect: inspect
 };
