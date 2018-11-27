@@ -1,6 +1,6 @@
 {
   "name": "mark-to-jsonml",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Parse markdown into JsonML",
   "keywords": [
     "markdown",
@@ -22,27 +22,29 @@
   ],
   "scripts": {
     "lint": "eslint src/*.js",
-    "transpile": "babel src --plugins transform-remove-console --out-dir dist",
-    "build": "npm run lint && npm run transpile",
+    "build": "npm run lint && webpack --mode production",
     "pretest": "npm run build",
     "test": "mocha",
     "sandbox": "babel src --out-dir sandbox && node",
     "prepublishOnly": "npm run build"
   },
-  "dependencies": {
-    "autobind-decorator": "^2.3.1",
-    "ramda": "^0.24.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@babel/cli": "^7.1.5",
     "@babel/core": "^7.1.6",
     "@babel/plugin-proposal-class-properties": "^7.1.0",
     "@babel/plugin-proposal-decorators": "^7.1.6",
     "@babel/preset-env": "^7.1.6",
+    "autobind-decorator": "^2.3.1",
     "babel-eslint": "^10.0.1",
+    "babel-loader": "^8.0.4",
     "babel-plugin-transform-remove-console": "^6.9.4",
     "chai": "^4.1.2",
     "eslint": "^5.9.0",
-    "mocha": "^3.5.3"
+    "mocha": "^3.5.3",
+    "ramda": "^0.24.1",
+    "webpack": "^4.26.1",
+    "webpack-cli": "^3.1.2",
+    "webpack-node-externals": "^1.7.2"
   }
 }
