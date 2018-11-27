@@ -44,7 +44,6 @@
     "mocha": "^3.5.3",
     "ramda": "^0.24.1",
     "webpack": "^4.26.1",
-    "webpack-cli": "^3.1.2",
-    "webpack-node-externals": "^1.7.2"
+    "webpack-cli": "^3.1.2"
   }
 }
