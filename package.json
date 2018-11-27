@@ -21,19 +21,27 @@
     "dist"
   ],
   "scripts": {
-    "build": "babel src --presets babel-preset-es2015 --plugins transform-remove-console --out-dir dist",
+    "lint": "eslint src/*.js",
+    "transpile": "babel src --plugins transform-remove-console --out-dir dist",
+    "build": "npm run lint && npm run transpile",
     "pretest": "npm run build",
     "test": "mocha",
+    "sandbox": "babel src --out-dir sandbox && node",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
+    "autobind-decorator": "^2.2.1",
     "ramda": "^0.24.1"
   },
   "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-preset-es2015": "^6.24.1",
-    "babel-plugin-transform-remove-console": "^6.8.5",
+    "@babel/cli": "^7.1.5",
+    "@babel/core": "^7.1.5",
+    "@babel/plugin-proposal-class-properties": "^7.1.0",
+    "@babel/plugin-proposal-decorators": "^7.1.2",
+    "babel-eslint": "^10.0.1",
+    "babel-plugin-transform-remove-console": "^6.9.4",
     "chai": "^4.1.2",
+    "eslint": "^5.8.0",
     "mocha": "^3.5.3"
   }
 }

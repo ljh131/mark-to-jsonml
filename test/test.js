@@ -5,7 +5,7 @@ const expect = chai.expect;
 chai.config.truncateThreshold = 0;
 
 describe('markdown parser should parse', () => {
-  const p = new Parser({ includeRoot: false, parseToc: false, headingNumber: false });
+  const p = new Parser({ includeRoot: false, parseToc: false, includeHeadingNumber: false });
 
   it('paragraph', () => {
     const md = `hello markdown parser!`;
@@ -407,7 +407,7 @@ describe('custom markdown parser should parse', () => {
 
     const mdtext = `# first heading\n---\n# second heading `;
 
-    const p = new Parser({ includeRoot: false, parseToc: false, headingNumber: false });
+    const p = new Parser({ includeRoot: false, parseToc: false, includeHeadingNumber: false });
     p.addBlockParser(parseMyRuler, true);
     
     const parsed = p.parse(mdtext);

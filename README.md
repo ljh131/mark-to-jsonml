@@ -1,10 +1,10 @@
 # mark-to-jsonml
 Parse markdown into [JsonML](http://www.jsonml.org/)
 
-* Supports most common markdown specs and other extensions
-  * Extension includes: table, toc and heading numbers
-* Easy to add custom syntax parser
-  * With automatic inline style parsing
+* Very easy to add custom markdown syntax
+  * With automatic inline parsing
+* Supports most common markdown specs and other extension specs
+  * Which includes: table, footnote, table of content and more
 
 ## Another mark-to-*
 
@@ -16,31 +16,47 @@ Parse markdown into [JsonML](http://www.jsonml.org/)
 npm install mark-to-jsonml --save
 ```
 
-# Usage example
+# Example
 ```javascript
-const { Parser, inspect } = require('mark-to-jsonml');
+const { Parser, makeTestResult, inspect } = require('mark-to-jsonml');
 
-const markdown = `{toc}                          
-# hello parser!                                  
-* first                                          
-* second **bold ~~and strike~~** plain           
- * nested                                        
-  1. deeply *nested*                             
-  1. and ordered                                 
-## try _this!_                                   
-\`\`\`javascript                                 
-console.log("hello parser!");                    
-\`\`\``;                                         
-                                                 
-const parser = new Parser({ parseToc: true });   
-const parsed = parser.parse(markdown);           
-console.log(inspect(parsed));                    
+const markdown = `{toc}
+# hello parser!
+* first
+* second **bold ~~and strike~~** plain
+ * nested
+  1. deeply *nested*
+  1. and ordered
+## try _this!_
+\`\`\`javascript
+console.log("hello mark-to-jsonml!");
+\`\`\`
+@@@@`;
+
+// string {String}: remaining string to parse
+// isTest {Boolean}: true if test mode
+function parseMyRuler(string, isTest) {
+  const RULER = /^@{3,}$/gm;
+  const result = RULER.exec(string);
+
+  // you should return the test result on the test mode.
+  if(isTest) return makeTestResult(RULER, result);
+  if(!result) return null;
+
+  return ['my_ruler'];
+}
+
+const parser = new Parser({ parseToc: true });
+parser.addBlockParser(parseMyRuler, true);
+
+const parsed = parser.parse(markdown);
+console.log(inspect(parsed));    
 ```
 
 ## Output
 ```javascript
 [ 'markdown',
-  { tocParsed: true },
+  { tocParsed: true, footnoteParsed: false },
   [ 'toc',
     [ 'toc-item', { level: 1, number: '1.' }, 'hello parser!' ],
     [ 'toc-item',
@@ -63,60 +79,96 @@ console.log(inspect(parsed));
   [ 'h', { number: '1.1.', level: 2 }, 'try ', [ 'u', 'this!' ] ],
   [ 'codeblock',
     { lang: 'javascript' },
-    'console.log("hello parser!");\n' ] ]
+    'console.log("hello mark-to-jsonml!");\n' ],
+  [ 'my_ruler' ] ]
 ```
 
-
 # Markdown and JsonML elements
-Find out which markdown is mapped to which JsonML element. Note that 2nd-depth indicates element name and 3rd-depth indicates their property.
+Find out which markdown is parsed into which JsonML element.
 
 ## Block elements
-* Table of content
-  * toc: wrapping element
-  * toc-item: individual item which represents correspond heading
-* Heading
-  * h
-     * level
-     * number
-* Table
-  * table, thead, tbody, tr, th, td
-* Ordered list and Unordered list
-  * ol, ul, li
-* Block quote 
-  * blockquote
-* Code block
-  * codeblock
-     * lang
-* Paragraph
-  * p
-* Horizontal ruler 
-  * hr
+
+### Heading
+```
+['h', { level, number }, ...]
+```
+
+### Table of content
+```
+['toc', // an wrapping element
+  ['toc-item', { level, number }, ...] // items corresponding to the heading
+]
+```
+
+### Table
+```
+['table', 
+  ['thead', 
+    ['tr', ['td', ...]]
+  ], 
+  ['tbody', 
+    ['tr', ['td', ...]]
+  ]
+]
+```
+
+### List (Unordered and ordered)
+```
+['ul', ['li', ...], ['li', ...]] // unordered list
+['ol', ['li', ...], ['li', ...]] // ordered list
+```
+
+### Block quote 
+```
+['blockquote', ...]
+```
+
+### Code block
+```
+['codeblock', { lang }, ...]
+```
+
+### Paragraph
+```
+['p', ...]
+```
+
+### Horizontal ruler 
+```
+['hr', ...]
+```
 
 ## Inline elements
-* Inline code 
-  * code
-* Link (Note: URL starts with http:// or https:// will be recognized as a link)
-  * a
-    * href: url
-* bold 
-  * b
-* strike
-  * s
-* italic
-  * i
-* underline 
-  * u
+### Inline code 
+```
+['code', ...]
+```
+
+### Link 
+URL starts with http:// or https:// will be recognized as a link
+
+```
+['a', { href }, ...]
+```
+
+### Text decoration (bold, strike, italic, underline)
+```
+['b', ...] // bold
+['s', ...] // strike
+['i', ...] // italic
+['u', ...] // underline
+```
 
 # API
 ## Class: Parser
 ### new Parser(options)
 * `options` {Object}
-  * `includeRoot` {Boolean}: Parsed result include root element `markdown` with some props
-  * `headingNumber` {Boolean}: Parsed heading props include number (eg, 1, 2, 2.1)
+  * `includeRoot` {Boolean}: Parsed result contains root element `markdown` with some props
+  * `includeHeadingNumber` {Boolean}: Parsed heading prop contains number field (eg, 1, 2, 2.1)
   * `parseToc` {Boolean}: Parse `table of content` pattern with `tocPattern` 
-  * `tocPattern` {String}: Specify `table of content` pattern in text
+  * `tocPattern` {String}: Specify `table of content` regexp pattern
   * `parseFootnote` {Boolean}: Parse `footnote` pattern with `footnotePattern` 
-  * `footnotePattern` {String}: Specify `footnote` pattern in text
+  * `footnotePattern` {String}: Specify `footnote` regexp pattern
 
 ### parse(mdtext)
 Parse markdown text into JsonML
@@ -124,38 +176,39 @@ Parse markdown text into JsonML
 * returns {Object}: Parsed result
 
 ### addBlockParser(blockParser, isTerminal=false)
-Add custom block parse function
+Add custom block element parse function. 
 
-* `blockParser` {Function}: A custom parser function (see below)
-* `isTerminal`: true if you don't want inline parsing inside (like codeblock)
+A block element is an element that cannot contain other block element, but can contain inline elements.
 
-#### Note: example of custom parser
-```javascript
-// string {String}: remaining string to parse
-// isTest {Boolean}: true if test mode (to check which parser should be run in current step)
-function parseMyRuler(string, isTest) {             
-  var HR = /^(-){3,}$/gm;                           
-  var result = HR.exec(string);                     
-                                                    
-  // you should return test result on test mode.
-  if(isTest) return makeTestResult(HR, result, -1); 
-  if(!result) return null;                          
-                                                    
-  return ['my_hr'];                                 
-}                         
-          
-const p = new Parser();
-p.addBlockParser(parseMyRuler, true);                
-```
+* `blockParser` {Function}: A custom parser function
+* `isTerminal` {Boolean}: true if you don't want inline parsing inside (like codeblock)
 
 ### addInlineParser(inlineParser, isTerminal=false)
-Add custom inline parse function
+Add custom inline element parse function. 
 
-See `addBlockParser`
+An inline element is an element that cannot contain other block element, but can contain other inline elements.
+
+* `inlineParser` {Function}: A custom parser function
+* `isTerminal` {Boolean}: true if you don't want inline parsing inside (like inline code)
+
 ## function: makeTestResult(re, result, priority=0)
-When you use custom parser, you should use this function to make test result and return if parser running with test mode. See example of custom parser.
+Inside your custom parser, you can use this function to make test result and return if your custom parser uses regexp. Note that you should return test result only if the parser is running with the test mode.
 
 * `re` {RegExp}: RegExp object used inside your custom parser
 * `result` {Object}: Executed result of RegExp
 * `priority` {Integer}: Lower value means highest priority 
-  * priority used only when more than one parsers are competing
+  * priority used only when more than one parsers are competing (which means multiple parser return same index)
+
+## Note: Custom syntax parser
+The parser(this library itself) will call your custom parser in two different mode. 1. Test mode and 2. Parse mode(non-test mode). 
+
+In test mode, you should return whether you can parse the given string and some information. In parse mode, you should parsed actual JsonML element. All the other things are done automatically, including inline element parsing. See below for details.
+
+- In test mode:
+  - Return null if you can't parse.
+  - Return `{index, lastIndex, priority}` if you can parse. 
+    - index {Integer}: The position of given string that parser can parse.
+    - lastIndex {Integer}: The next position after the parser has finished parse.
+    - priority {Integer}: Priority is used when two or more parser returns same index in test mode. If you want more higher priority than others, return less than zero. Otherwise, just use 0. 
+- In parse mode(non-test mode):
+  - Return the JsonML element.
