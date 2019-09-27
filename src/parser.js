@@ -8,7 +8,8 @@ class Parser {
   constructor(opt) {
     this.option = R.merge({
       includeRoot: true, // parse시 'markdown' tag와 prop을 붙인다.
-      includeHeadingNumber: true, // heading의 prop에 number로 번호를 붙인다.
+      includeHeadingNumber: false, // heading의 prop에 number로 번호를 붙인다.
+      parseNewLine: false, // 각 줄마다 개행한다.
       parseToc: false, // tocPattern을 목차로 바꾼다.
       parseFootnote: false, // footnotePattern을 각주로 바꾼다.
       tocPattern: /^{toc}$/, // 목차 패턴
@@ -45,6 +46,7 @@ class Parser {
       { matcher: matchUnderscore },
       { matcher: matchInlineCode, terminal: true },
       { matcher: this.matcher.matchLink, terminal: true },
+      this.option.parseNewLine ? { matcher: this.matcher.matchNewLine, terminal: true } : null,
       this.option.parseFootnote ? { matcher: this.matcher.matchFootnote, terminal: true } : null
     ]);
   }

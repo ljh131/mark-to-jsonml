@@ -165,9 +165,10 @@ URL starts with http:// or https:// will be recognized as a link
 * `options` {Object}
   * `includeRoot` {Boolean}: Parsed result contains root element `markdown` with some props
   * `includeHeadingNumber` {Boolean}: Parsed heading prop contains number field (eg, 1, 2, 2.1)
+  * `parseNewLine` {Boolean}: Parse new line as `br`
   * `parseToc` {Boolean}: Parse `table of content` pattern with `tocPattern` 
-  * `tocPattern` {String}: Specify `table of content` regexp pattern
   * `parseFootnote` {Boolean}: Parse `footnote` pattern with `footnotePattern` 
+  * `tocPattern` {String}: Specify `table of content` regexp pattern
   * `footnotePattern` {String}: Specify `footnote` regexp pattern
 
 ### parse(mdtext)

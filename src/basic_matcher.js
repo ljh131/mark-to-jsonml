@@ -253,6 +253,17 @@ class BasicMatcher {
   }
 
   @boundMethod
+  matchNewLine(string, test) {
+    const NEW_LINE = /\n/g;
+    let result = NEW_LINE.exec(string);
+    if (!result) return null;
+
+    if (test) return makeTestResult(NEW_LINE, result);
+
+    return ['br'];
+  }
+
+  @boundMethod
   matchFootnote(string, test) {
     const FOOTNOTE = this.option.footnotePattern;
     let result = FOOTNOTE.exec(string);
