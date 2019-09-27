@@ -142,7 +142,7 @@ class BasicMatcher {
 
     const content = result[0];
 
-    const QUOTE = /^>(.+)/;
+    const QUOTE = /^>(.*)/;
     const quote = compact(content.split('\n').map((line) => {
       const r = QUOTE.exec(line.trim());
       if(!r) return;
