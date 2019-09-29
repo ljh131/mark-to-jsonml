@@ -1,14 +1,13 @@
 # mark-to-jsonml
 Parse markdown into [JsonML](http://www.jsonml.org/)
 
-* Very easy to add custom markdown syntax
+* Easy to add custom markdown syntax
   * With automatic inline parsing
-* Supports most common markdown specs and other extension specs
+* Supports common markdown specs and other extensions
   * Which includes: table, footnote, table of content and more
 
-## Another mark-to-*
+## If you want to use it in React
 
-* [mark-to-jsonml](https://github.com/ljh131/mark-to-jsonml)
 * [mark-to-react](https://github.com/ljh131/mark-to-react)
 
 # Installation
@@ -83,8 +82,7 @@ console.log(inspect(parsed));
   [ 'my_ruler' ] ]
 ```
 
-# Markdown and JsonML elements
-Find out which markdown is parsed into which JsonML element.
+# How it parse Markdown into JsonML elements
 
 ## Block elements
 
@@ -200,7 +198,7 @@ Inside your custom parser, you can use this function to make test result and ret
 * `priority` {Integer}: Lower value means highest priority 
   * priority used only when more than one parsers are competing (which means multiple parser return same index)
 
-## Note: Custom syntax parser
+## Note on custom syntax parser
 The parser(this library itself) will call your custom parser in two different mode. 1. Test mode and 2. Parse mode(non-test mode). 
 
 In test mode, you should return whether you can parse the given string and some information. In parse mode, you should parsed actual JsonML element. All the other things are done automatically, including inline element parsing. See below for details.
