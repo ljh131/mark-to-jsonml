@@ -5,7 +5,7 @@ const expect = chai.expect;
 chai.config.truncateThreshold = 0;
 
 describe('markdown parser should parse', () => {
-  const p = new Parser({ includeRoot: false, parseToc: false, includeHeadingNumber: false });
+  const p = new Parser({ includeRoot: false, parseToc: false });
 
   it('paragraph', () => {
     const md = `hello markdown parser!`;
@@ -303,7 +303,7 @@ describe('inline parser should parse', () => {
 });
 
 describe('toc parser should parse', () => {
-  const p = new Parser({ includeRoot: true, parseToc: true });
+  const p = new Parser({ includeRoot: true, includeHeadingNumber: true, parseToc: true });
 
   it('heading with inline style', () => {
     const mdtext = `
@@ -407,7 +407,7 @@ describe('custom markdown parser should parse', () => {
 
     const mdtext = `# first heading\n---\n# second heading `;
 
-    const p = new Parser({ includeRoot: false, parseToc: false, includeHeadingNumber: false });
+    const p = new Parser({ includeRoot: false, parseToc: false });
     p.addBlockParser(parseMyRuler, true);
     
     const parsed = p.parse(mdtext);
@@ -418,4 +418,25 @@ describe('custom markdown parser should parse', () => {
     );
   });
 });
-  
+
+
+describe('markdown parser with new line option should parse', () => {
+  const p = new Parser({ includeRoot: false, parseToc: false, parseNewLine: true });
+
+  it('multiline text', () => {
+    const markdown = `
+hello
+new
+line!
+
+and
+paragraph!
+`;
+    const parsed = p.parse(markdown);
+    expect(parsed).to.deep.equal(
+      [ [ 'p', 'hello', [ 'br' ], 'new', [ 'br' ], 'line!' ],
+        [ 'p', 'and', [ 'br' ], 'paragraph!' ] ]
+    );
+  });
+});
+

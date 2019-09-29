@@ -107,7 +107,7 @@ class BasicMatcher {
 
   @boundMethod
   matchHeading(string, test) {
-    const H = /^(#+)[ ]*(.*)/gm;
+    const H = /^(#+)[ ]+(.*)/gm;
     let result = H.exec(string);
     if(!result) return null;
 
@@ -142,7 +142,7 @@ class BasicMatcher {
 
     const content = result[0];
 
-    const QUOTE = /^>(.+)/;
+    const QUOTE = /^>(.*)/;
     const quote = compact(content.split('\n').map((line) => {
       const r = QUOTE.exec(line.trim());
       if(!r) return;
@@ -250,6 +250,17 @@ class BasicMatcher {
         return ['a', { href: title }, title];
       }
     }
+  }
+
+  @boundMethod
+  matchNewLine(string, test) {
+    const NEW_LINE = /\n/g;
+    let result = NEW_LINE.exec(string);
+    if (!result) return null;
+
+    if (test) return makeTestResult(NEW_LINE, result);
+
+    return ['br'];
   }
 
   @boundMethod
