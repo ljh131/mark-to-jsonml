@@ -3,6 +3,7 @@ const path = require('path')
 module.exports = {
   target: 'node',
   entry: './src/parser.js',
+  devtool: 'source-map',
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'parser.js',

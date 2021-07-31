@@ -1,6 +1,6 @@
 {
   "name": "mark-to-jsonml",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Parse markdown into JsonML",
   "keywords": [
     "markdown",
@@ -23,6 +23,7 @@
   "scripts": {
     "lint": "eslint src/*.js",
     "build": "npm run lint && webpack --mode production",
+    "build-dev": "npm run lint && webpack --mode development",
     "pretest": "npm run build",
     "test": "mocha",
     "sandbox": "babel src --out-dir sandbox && node",
@@ -30,19 +31,19 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@babel/cli": "^7.1.5",
-    "@babel/core": "^7.1.6",
-    "@babel/plugin-proposal-class-properties": "^7.1.0",
-    "@babel/plugin-proposal-decorators": "^7.1.6",
-    "@babel/preset-env": "^7.1.6",
-    "autobind-decorator": "^2.3.1",
-    "babel-eslint": "^10.0.1",
-    "babel-loader": "^8.0.4",
+    "@babel/cli": "^7.14.8",
+    "@babel/core": "^7.14.8",
+    "@babel/plugin-proposal-class-properties": "^7.14.5",
+    "@babel/plugin-proposal-decorators": "^7.14.5",
+    "@babel/preset-env": "^7.14.8",
+    "autobind-decorator": "^2.4.0",
+    "babel-eslint": "^10.1.0",
+    "babel-loader": "^8.2.2",
     "babel-plugin-transform-remove-console": "^6.9.4",
-    "chai": "^4.1.2",
+    "chai": "^4.3.4",
     "eslint": "^5.9.0",
     "mocha": "^3.5.3",
-    "ramda": "^0.24.1",
+    "ramda": "^0.27.1",
     "webpack": "^4.26.1",
     "webpack-cli": "^3.1.2"
   }

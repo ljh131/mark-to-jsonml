@@ -3,8 +3,8 @@ const util = require('util');
 
 function buildRe(re) {
   const _exec = re.exec;
-  re.exec = (string, resetLastIndexBefore=true) => {
-    if(re.global && resetLastIndexBefore) re.lastIndex = 0;
+  re.exec = (string, resetLastIndexBefore = true) => {
+    if (re.global && resetLastIndexBefore) re.lastIndex = 0;
     const m = _exec.call(re, string);
     return m;
   }
@@ -14,13 +14,13 @@ function buildRe(re) {
 /**
  * low priority value means higher priority. built-in parser use 0
  */
-function makeTestResult(re, result, priority=0) {
-  return result ? 
-    R.merge({ lastIndex: re.lastIndex, priority }, result) : null;
+function makeTestResult(re, result, priority = 0) {
+  return result ?
+    R.merge({lastIndex: re.lastIndex, priority}, result) : null;
 }
 
 function concatLast(ar, e) {
-  if(ar.length > 0) {
+  if (ar.length > 0) {
     const lastidx = ar.length - 1;
     const last = ar[lastidx];
     ar[lastidx] = last.concat(e);
@@ -41,8 +41,8 @@ function getParsedProp(parsed) {
   return parsed && parsed[0] === 'markdown' ? parsed[1] : {};
 }
 
-module.exports = { 
-  buildRe, 
+module.exports = {
+  buildRe,
   makeTestResult,
   concatLast,
   compact,
