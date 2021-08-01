@@ -1,11 +1,11 @@
-const { Parser, makeTestResult, inspect } = require('../dist/parser');
+const {Parser, makeTestResult, inspect} = require('../dist/parser');
 const chai = require('chai');
 const expect = chai.expect;
 
 chai.config.truncateThreshold = 0;
 
 describe('markdown parser should parse', () => {
-  const p = new Parser({ includeRoot: false, parseToc: false });
+  const p = new Parser({includeRoot: false, parseToc: false});
 
   it('paragraph', () => {
     const md = `hello markdown parser!`;
@@ -43,7 +43,7 @@ describe('markdown parser should parse', () => {
     const md = `# hello\n## plain **bold me**`;
     const parsed = p.parse(md);
     expect(parsed).to.deep.equal([
-      ["h", {level: 1}, "hello"], 
+      ["h", {level: 1}, "hello"],
       ['h', {level: 2}, 'plain ', ['b', 'bold me']]
     ]);
   });
@@ -52,8 +52,8 @@ describe('markdown parser should parse', () => {
     const md = `* first\n* second **bold** plain\n- third`;
     const parsed = p.parse(md);
     expect(parsed).to.deep.equal([
-      ["ul", 
-        ["li", 'first'], 
+      ["ul",
+        ["li", 'first'],
         ["li", 'second ', ['b', 'bold'], ' plain'],
         ["li", 'third']
       ]
@@ -64,12 +64,12 @@ describe('markdown parser should parse', () => {
     const md = `* first\n * nested\n  * deeply nested\n* second`;
     const parsed = p.parse(md);
     expect(parsed).to.deep.equal([
-      [ 'ul',
-        [ 'li',
+      ['ul',
+        ['li',
           'first',
-          [ 'ul',
-            [ 'li', 'nested', [ 'ul', [ 'li', 'deeply nested' ] ] ] ] ],
-        [ 'li', 'second' ] ]
+          ['ul',
+            ['li', 'nested', ['ul', ['li', 'deeply nested']]]]],
+        ['li', 'second']]
     ]);
   });
 
@@ -77,8 +77,8 @@ describe('markdown parser should parse', () => {
     const md = `1. aaa\n- bbb`;
     const parsed = p.parse(md);
     expect(parsed).to.deep.equal([
-      [ 'ol', [ 'li', 'aaa' ] ],
-      [ 'ul', [ 'li', 'bbb' ] ] 
+      ['ol', ['li', 'aaa']],
+      ['ul', ['li', 'bbb']]
     ]);
   });
 
@@ -86,7 +86,7 @@ describe('markdown parser should parse', () => {
     const md = '```\nconsole.log(a)\nreturn\n```';
     const parsed = p.parse(md);
     expect(parsed).to.deep.equal([
-      [ 'codeblock', { lang: '' }, 'console.log(a)\nreturn\n' ]
+      ['codeblock', {lang: ''}, 'console.log(a)\nreturn\n']
     ]);
   });
 
@@ -94,7 +94,7 @@ describe('markdown parser should parse', () => {
     const md = '``` js \nconsole.log(a)\nreturn\n```';
     const parsed = p.parse(md);
     expect(parsed).to.deep.equal([
-      [ 'codeblock', { lang: 'js' }, 'console.log(a)\nreturn\n' ]
+      ['codeblock', {lang: 'js'}, 'console.log(a)\nreturn\n']
     ]);
   });
 
@@ -102,7 +102,7 @@ describe('markdown parser should parse', () => {
     const md = '``` js \nconsole.log("**_not a style_**")\nreturn\n```';
     const parsed = p.parse(md);
     expect(parsed).to.deep.equal([
-      [ 'codeblock', { lang: 'js' }, 'console.log("**_not a style_**")\nreturn\n' ]
+      ['codeblock', {lang: 'js'}, 'console.log("**_not a style_**")\nreturn\n']
     ]);
   });
 
@@ -112,11 +112,11 @@ describe('markdown parser should parse', () => {
 `;
     const parsed = p.parse(md);
     expect(parsed).to.deep.equal([
-      [ 'table',
-        [ 'tbody',
-          [ 'tr', [ 'td', '' ] ],
-        ] 
-      ] 
+      ['table',
+        ['tbody',
+          ['tr', ['td', '']],
+        ]
+      ]
     ]);
   });
 
@@ -126,11 +126,11 @@ describe('markdown parser should parse', () => {
 `;
     const parsed = p.parse(md);
     expect(parsed).to.deep.equal([
-      [ 'table',
-        [ 'tbody',
-          [ 'tr', [ 'td', 'a' ] ],
-        ] 
-      ] 
+      ['table',
+        ['tbody',
+          ['tr', ['td', 'a']],
+        ]
+      ]
     ]);
   });
 
@@ -140,7 +140,7 @@ describe('markdown parser should parse', () => {
 `;
     const parsed = p.parse(md);
     expect(parsed).to.deep.equal([
-      [ 'p', '| a |' ]
+      ['p', '| a |']
     ]);
   });
 
@@ -151,12 +151,12 @@ describe('markdown parser should parse', () => {
 `;
     const parsed = p.parse(md);
     expect(parsed).to.deep.equal([
-      [ 'table',
-        [ 'tbody',
-          [ 'tr', [ 'td', 'a' ], [ 'td', 'b' ] ],
-          [ 'tr', [ 'td', '1' ], [ 'td', '2' ] ],
-        ] 
-      ] 
+      ['table',
+        ['tbody',
+          ['tr', ['td', 'a'], ['td', 'b']],
+          ['tr', ['td', '1'], ['td', '2']],
+        ]
+      ]
     ]);
   });
 
@@ -167,11 +167,11 @@ describe('markdown parser should parse', () => {
 `;
     const parsed = p.parse(md);
     expect(parsed).to.deep.equal([
-      [ 'table',
-        [ 'tbody',
-          [ 'tr', [ 'td', 'a' ] ],
-        ] 
-      ] 
+      ['table',
+        ['tbody',
+          ['tr', ['td', 'a']],
+        ]
+      ]
     ]);
   });
 
@@ -183,10 +183,10 @@ describe('markdown parser should parse', () => {
 `;
     const parsed = p.parse(md);
     expect(parsed).to.deep.equal([
-      [ 'table',
-        [ 'thead', [ 'tr', [ 'td', 'a' ], [ 'td', 'b' ] ] ],
-        [ 'tbody', [ 'tr', [ 'td', '1' ], [ 'td', '2' ] ] ] 
-      ] 
+      ['table',
+        ['thead', ['tr', ['td', 'a'], ['td', 'b']]],
+        ['tbody', ['tr', ['td', '1'], ['td', '2']]]
+      ]
     ]);
   });
 
@@ -198,11 +198,11 @@ describe('markdown parser should parse', () => {
 `;
     const parsed = p.parse(md);
     expect(parsed).to.deep.equal([
-      [ 'table',
-        [ 'tbody',
-          [ 'tr', [ 'td', 'a' ], [ 'td', 'b' ] ],
-          [ 'tr', [ 'td', '-' ], [ 'td', 'double dash --' ] ],
-          [ 'tr', [ 'td', '1' ], [ 'td', '2' ] ] ] ] 
+      ['table',
+        ['tbody',
+          ['tr', ['td', 'a'], ['td', 'b']],
+          ['tr', ['td', '-'], ['td', 'double dash --']],
+          ['tr', ['td', '1'], ['td', '2']]]]
     ]);
   });
 
@@ -213,10 +213,10 @@ describe('markdown parser should parse', () => {
 `;
     const parsed = p.parse(md);
     expect(parsed).to.deep.equal([
-      [ 'table',
-        [ 'thead', [ 'tr', [ 'td', 'a' ], [ 'td', 'b' ] ] ],
-        [ 'tbody', [ 'tr', [ 'td', '1' ], [ 'td', '2' ] ] ] 
-      ] 
+      ['table',
+        ['thead', ['tr', ['td', 'a'], ['td', 'b']]],
+        ['tbody', ['tr', ['td', '1'], ['td', '2']]]
+      ]
     ]);
   });
 
@@ -228,12 +228,12 @@ describe('markdown parser should parse', () => {
 `;
     const parsed = p.parse(md);
     expect(parsed).to.deep.equal([
-      [ 'table',
-        [ 'thead', [ 'tr', [ 'td', 'a' ], [ 'td', 'b' ] ] ],
-        [ 'tbody',
-          [ 'tr', [ 'td', '-' ], [ 'td', '-' ] ],
-          [ 'tr', [ 'td', '1' ], [ 'td', '2' ] ] ] 
-      ] 
+      ['table',
+        ['thead', ['tr', ['td', 'a'], ['td', 'b']]],
+        ['tbody',
+          ['tr', ['td', '-'], ['td', '-']],
+          ['tr', ['td', '1'], ['td', '2']]]
+      ]
     ]);
   });
 
@@ -251,27 +251,27 @@ console.log("hello parser!");
     const parsed = p.parse(markdown);
     //console.log(inspect(parsed));
     expect(parsed).to.deep.equal(
-      [ [ 'h', { level: 1 }, 'hello parser!' ],
-        [ 'ul',
-          [ 'li', 'first' ],
-          [ 'li',
+      [['h', {level: 1}, 'hello parser!'],
+        ['ul',
+          ['li', 'first'],
+          ['li',
             'second ',
-            [ 'b', 'bold ', [ 's', 'and strike' ] ],
+            ['b', 'bold ', ['s', 'and strike']],
             ' plain',
-            [ 'ul',
-              [ 'li',
+            ['ul',
+              ['li',
                 'nested',
-                [ 'ul', [ 'li', 'deeply ', [ 'b', 'nested' ] ] ] ] ] ] ],
-        [ 'h', { level: 2 }, 'try ', [ 'u', 'this!' ] ],
-        [ 'codeblock',
-          { lang: 'javascript' },
-          'console.log("hello parser!");\n' ] ]
+                ['ul', ['li', 'deeply ', ['b', 'nested']]]]]]],
+        ['h', {level: 2}, 'try ', ['u', 'this!']],
+        ['codeblock',
+          {lang: 'javascript'},
+          'console.log("hello parser!");\n']]
     );
   });
 });
 
 describe('inline parser should parse', () => {
-  const p = new Parser({ includeRoot: false, parseToc: false });
+  const p = new Parser({includeRoot: false, parseToc: false});
 
   function makeParagraph(s) {
     return ['p', s];
@@ -279,31 +279,31 @@ describe('inline parser should parse', () => {
 
   it('basic link', () => {
     const parsed = p.parseInline(makeParagraph(`[GitHub](http://github.com)`));
-    expect(parsed).to.deep.equal(['p', 
-      ['a', { href: 'http://github.com' }, 'GitHub']
+    expect(parsed).to.deep.equal(['p',
+      ['a', {href: 'http://github.com'}, 'GitHub']
     ]);
   });
 
   it('url only link', () => {
     const parsed = p.parseInline(makeParagraph(`[http://github.com]`));
-    expect(parsed).to.deep.equal(['p', 
-      ['a', { href: 'http://github.com' }, 'http://github.com']
+    expect(parsed).to.deep.equal(['p',
+      ['a', {href: 'http://github.com'}, 'http://github.com']
     ]);
   });
 
   it('complex', () => {
     const s = `plain **bold ~~strike *italic*~~** plain`;
     const parsed = p.parseInline(makeParagraph(s));
-    expect(parsed).to.deep.equal(['p', 
-      'plain ', 
-      ['b', 'bold ', ['s', 'strike ', ['i', 'italic']]], 
+    expect(parsed).to.deep.equal(['p',
+      'plain ',
+      ['b', 'bold ', ['s', 'strike ', ['i', 'italic']]],
       ' plain'
     ]);
   });
 });
 
 describe('toc parser should parse', () => {
-  const p = new Parser({ includeRoot: true, includeHeadingNumber: true, parseToc: true });
+  const p = new Parser({includeRoot: true, includeHeadingNumber: true, parseToc: true});
 
   it('heading with inline style', () => {
     const mdtext = `
@@ -317,25 +317,48 @@ describe('toc parser should parse', () => {
 `;
     const parsed = p.parse(mdtext);
     expect(parsed).to.deep.equal(
-      [ 'markdown',
-        { tocParsed: true, footnoteParsed: false },
-        [ 'toc',
-          [ 'toc-item', { level: 1, number: '1.' }, 'a ', [ 'i', 's' ] ],
-          [ 'toc-item', { level: 2, number: '1.1.' }, 'a-1 ', [ 'u', 'u' ] ],
-          [ 'toc-item', { level: 3, number: '1.1.1.' }, 'a-1-1' ],
-          [ 'toc-item', { level: 2, number: '1.2.' }, 'a-2' ],
-          [ 'toc-item', { level: 1, number: '2.' }, 'b' ] ],
-        [ 'h', { level: 1, number: '1.' }, 'a ', [ 'i', 's' ] ],
-        [ 'h', { level: 2, number: '1.1.' }, 'a-1 ', [ 'u', 'u' ] ],
-        [ 'h', { level: 3, number: '1.1.1.' }, 'a-1-1' ],
-        [ 'h', { level: 2, number: '1.2.' }, 'a-2' ],
-        [ 'h', { level: 1, number: '2.' }, 'b' ] ]
+      ['markdown',
+        {tocParsed: true, footnoteParsed: false},
+        ['toc',
+          ['toc-item', {level: 1, number: '1.'}, 'a ', ['i', 's']],
+          ['toc-item', {level: 2, number: '1.1.'}, 'a-1 ', ['u', 'u']],
+          ['toc-item', {level: 3, number: '1.1.1.'}, 'a-1-1'],
+          ['toc-item', {level: 2, number: '1.2.'}, 'a-2'],
+          ['toc-item', {level: 1, number: '2.'}, 'b']],
+        ['h', {level: 1, number: '1.'}, 'a ', ['i', 's']],
+        ['h', {level: 2, number: '1.1.'}, 'a-1 ', ['u', 'u']],
+        ['h', {level: 3, number: '1.1.1.'}, 'a-1-1'],
+        ['h', {level: 2, number: '1.2.'}, 'a-2'],
+        ['h', {level: 1, number: '2.'}, 'b']]
     );
   });
 });
 
 describe('footnote parser should parse', () => {
-  const p = new Parser({ includeRoot: true, parseFootnote: true });
+  const p = new Parser({includeRoot: true, parseFootnote: true});
+
+  // FIXME currently not supported
+//   it('link inside footnote', () => {
+//     const mdtext = `
+// hello[*note [http://link.is.here]]
+// `;
+//
+//     const parsed = p.parse(mdtext);
+//     console.log(inspect(parsed));
+//     expect(parsed).to.deep.equal(
+//       ['markdown',
+//         {tocParsed: false, footnoteParsed: true},
+//         ['p',
+//           'hello',
+//           ['footnote', {id: 1, title: 'note'}, 'note']],
+//         ['footnotes',
+//           ['footnote-item',
+//             {id: 1, title: 'note'},
+//             ['a',
+//               {href: 'http://link.is.here'},
+//               'http://link.is.here']]]]
+//     );
+//   });
 
   it('multiple footnotes on one line', () => {
     const mdtext = `
@@ -344,16 +367,16 @@ hello[* hi] parser[* this thing]
 
     const parsed = p.parse(mdtext);
     expect(parsed).to.deep.equal(
-      [ 'markdown',
-        { tocParsed: false, footnoteParsed: true },
-        [ 'p',
+      ['markdown',
+        {tocParsed: false, footnoteParsed: true},
+        ['p',
           'hello',
-          [ 'footnote', { id: 1, title: 1 }, 1 ],
+          ['footnote', {id: 1, title: 1}, 1],
           ' parser',
-          [ 'footnote', { id: 2, title: 2 }, 2 ] ],
-        [ 'footnotes',
-          [ 'footnote-item', { id: 1, title: 1 }, 'hi' ],
-          [ 'footnote-item', { id: 2, title: 2 }, 'this thing' ] ] ]
+          ['footnote', {id: 2, title: 2}, 2]],
+        ['footnotes',
+          ['footnote-item', {id: 1, title: 1}, 'hi'],
+          ['footnote-item', {id: 2, title: 2}, 'this thing']]]
     );
   });
 
@@ -366,29 +389,29 @@ is it[* for more information, please visit http://github.com] works?
     const parsed = p.parse(mdtext);
     //console.log(inspect(parsed));
     expect(parsed).to.deep.equal(
-      [ 'markdown',
-        { tocParsed: false, footnoteParsed: true },
-        [ 'p',
+      ['markdown',
+        {tocParsed: false, footnoteParsed: true},
+        ['p',
           'hello parser',
-          [ 'footnote', { id: 1, title: 1 }, 1 ],
+          ['footnote', {id: 1, title: 1}, 1],
           '\nyou can',
-          [ 'footnote', { id: 2, title: 'note' }, 'note' ],
+          ['footnote', {id: 2, title: 'note'}, 'note'],
           ' specify footnote \nis it',
-          [ 'footnote', { id: 3, title: 3 }, 3 ],
-          ' works?' ],
-        [ 'footnotes',
-          [ 'footnote-item',
-            { id: 1, title: 1 },
-            'it parse markdown into jsonml' ],
-          [ 'footnote-item',
-            { id: 2, title: 'note' },
-            'in other word, optionally' ],
-          [ 'footnote-item',
-            { id: 3, title: 3 },
+          ['footnote', {id: 3, title: 3}, 3],
+          ' works?'],
+        ['footnotes',
+          ['footnote-item',
+            {id: 1, title: 1},
+            'it parse markdown into jsonml'],
+          ['footnote-item',
+            {id: 2, title: 'note'},
+            'in other word, optionally'],
+          ['footnote-item',
+            {id: 3, title: 3},
             'for more information, please visit ',
-            [ 'a',
-              { href: 'http://github.com', isAutoLink: true },
-              'http://github.com' ] ] ] ]
+            ['a',
+              {href: 'http://github.com', isAutoLink: true},
+              'http://github.com']]]]
     );
   });
 });
@@ -399,29 +422,29 @@ describe('custom markdown parser should parse', () => {
       var HR = /^(-){3,}$/gm;
       var result = HR.exec(string);
 
-      if(isTest) return makeTestResult(HR, result, -1);
-      if(!result) return null;
+      if (isTest) return makeTestResult(HR, result, -1);
+      if (!result) return null;
 
       return ['my_hr'];
     }
 
     const mdtext = `# first heading\n---\n# second heading `;
 
-    const p = new Parser({ includeRoot: false, parseToc: false });
+    const p = new Parser({includeRoot: false, parseToc: false});
     p.addBlockParser(parseMyRuler, true);
-    
+
     const parsed = p.parse(mdtext);
     expect(parsed).to.deep.equal(
-      [ [ 'h', { level: 1 }, 'first heading' ],
-        [ 'my_hr' ],
-        [ 'h', { level: 1 }, 'second heading ' ] ]
+      [['h', {level: 1}, 'first heading'],
+        ['my_hr'],
+        ['h', {level: 1}, 'second heading ']]
     );
   });
 });
 
 
 describe('markdown parser with new line option should parse', () => {
-  const p = new Parser({ includeRoot: false, parseToc: false, parseNewLine: true });
+  const p = new Parser({includeRoot: false, parseToc: false, parseNewLine: true});
 
   it('multiline text', () => {
     const markdown = `
@@ -434,8 +457,8 @@ paragraph!
 `;
     const parsed = p.parse(markdown);
     expect(parsed).to.deep.equal(
-      [ [ 'p', 'hello', [ 'br' ], 'new', [ 'br' ], 'line!' ],
-        [ 'p', 'and', [ 'br' ], 'paragraph!' ] ]
+      [['p', 'hello', ['br'], 'new', ['br'], 'line!'],
+        ['p', 'and', ['br'], 'paragraph!']]
     );
   });
 });
