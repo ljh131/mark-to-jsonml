@@ -33,7 +33,7 @@ class BasicMatcher {
 
     let lineIdx = 0;
 
-    const visit = (myLev, lastType) => {
+    const visit = (myLev, lastType, depth) => {
       let curNode = [];
       let nodes = [];
       let type;
@@ -55,14 +55,25 @@ class BasicMatcher {
           lastType = type;
         }
 
-        console.log(`idx: ${lineIdx}, line: '${line}', lev: ${lev}, type: ${type}, name: '${name}', nodes: '${inspect(nodes)}', cur node: '${inspect(curNode)}' - my lev: ${myLev}, last type: ${lastType}`);
-
-        if (lev < myLev) {
-          console.log('> leave');
-          break;
+        if (myLev == null) {
+          myLev = lev;
         }
 
-        if (lev == myLev) {
+        console.log(`idx: ${lineIdx}, line: '${line}', lev: ${lev}, type: ${type}, name: '${name}', nodes: '${inspect(nodes)}', cur node: '${inspect(curNode)}' - my lev: ${myLev}, last type: ${lastType}`);
+
+        let forcedSibling = false;
+        if (lev < myLev) {
+          console.log('> leave');
+
+          if (depth > 0) {
+            break;
+          } else {
+            console.log(`> cannot leave. current depth is ${depth}. treat as sibling`);
+            forcedSibling = true;
+          }
+        }
+
+        if (lev == myLev || forcedSibling) {
           // 타입이 바뀌면 모아놨던걸 넣어준다.
           if (lastType && lastType != type) {
             curNode.push(R.prepend(lastType, nodes));
@@ -75,7 +86,7 @@ class BasicMatcher {
           lineIdx += 1;
         } else if (lev > myLev) {
           console.log(`> enter`);
-          const children = visit(lev, type);
+          const children = visit(lev, type, depth + 1);
           console.log(`got children '${inspect(children)}'`);
 
           concatLast(nodes, children);
@@ -101,7 +112,7 @@ class BasicMatcher {
       return curNode;
     };
 
-    const listNode = visit(0, null);
+    const listNode = visit(null, null, 0);
     return listNode;
   }
 

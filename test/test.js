@@ -73,6 +73,22 @@ describe('markdown parser should parse', () => {
     ]);
   });
 
+  it('nested list2', () => {
+    const md = `
+- a
+ - b
+  - c
+- 1
+ - 2
+`;
+    const parsed = p.parse(md);
+    expect(parsed).to.deep.equal(
+      [ [ 'ul',
+        [ 'li', 'a', [ 'ul', [ 'li', 'b', [ 'ul', [ 'li', 'c' ] ] ] ] ],
+        [ 'li', '1', [ 'ul', [ 'li', '2' ] ] ] ] ]
+    );
+  });
+
   it('mixed list at first level', () => {
     const md = `1. aaa\n- bbb`;
     const parsed = p.parse(md);
@@ -80,6 +96,71 @@ describe('markdown parser should parse', () => {
       ['ol', ['li', 'aaa']],
       ['ul', ['li', 'bbb']]
     ]);
+  });
+
+  it('spaces ahead of first list item are ignored', () => {
+    const md = `  - actually first`;
+    const parsed = p.parse(md);
+    expect(parsed).to.deep.equal([
+      ['ul',
+        ['li', 'actually first']
+      ]
+    ]);
+  });
+
+  it('reversed nested list', () => {
+    const md = `
+  - a
+ - b
+- c
+- d
+ - e
+  - f
+`;
+    const parsed = p.parse(md);
+    expect(parsed).to.deep.equal(
+      [ [ 'ul',
+        [ 'li', 'a' ],
+        [ 'li', 'b' ],
+        [ 'li', 'c' ],
+        [ 'li', 'd' ],
+        [ 'li', 'e' ],
+        [ 'li', 'f' ] ] ]
+    );
+  });
+
+  it('reversed nested list2', () => {
+    const md = `
+ - a
+- b
+ - c
+  - d
+`;
+    const parsed = p.parse(md);
+    expect(parsed).to.deep.equal(
+      [ [ 'ul',
+        [ 'li', 'a' ],
+        [ 'li', 'b' ],
+        [ 'li', 'c', [ 'ul', [ 'li', 'd' ] ] ] ] ]
+    );
+  });
+
+  it('mixed nested list', () => {
+    const md = `
+- a
+ - b
+  - c
+ - b
+- a
+`;
+    const parsed = p.parse(md);
+    expect(parsed).to.deep.equal(
+      [ [ 'ul',
+        [ 'li',
+          'a',
+          [ 'ul', [ 'li', 'b', [ 'ul', [ 'li', 'c' ] ] ], [ 'li', 'b' ] ] ],
+        [ 'li', 'a' ] ] ]
+    );
   });
 
   it('code', () => {

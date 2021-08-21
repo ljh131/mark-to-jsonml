@@ -33,14 +33,14 @@ console.log("hello mark-to-jsonml!");
 @@@@`;
 
 // string {String}: remaining string to parse
-// isTest {Boolean}: true if test mode
+// isTest {Boolean}: true if test mode (pre-parse mode)
 function parseMyRuler(string, isTest) {
   const RULER = /^@{3,}$/gm;
   const result = RULER.exec(string);
 
   // you should return the test result on the test mode.
-  if(isTest) return makeTestResult(RULER, result);
-  if(!result) return null;
+  if (isTest) return makeTestResult(RULER, result);
+  if (!result) return null;
 
   return ['my_ruler'];
 }
@@ -199,15 +199,17 @@ Inside your custom parser, you can use this function to make test result and ret
   * priority used only when more than one parsers are competing (which means multiple parser return same index)
 
 ## Note on custom syntax parser
-The parser(this library itself) will call your custom parser in two different mode. 1. Test mode and 2. Parse mode(non-test mode). 
+The parser(this library itself) will call your custom parser in two different mode. 1. Test mode (pre-parse mode) and 2. Parse mode. 
 
-In test mode, you should return whether you can parse the given string and some information. In parse mode, you should parsed actual JsonML element. All the other things are done automatically, including inline element parsing. See below for details.
+In test mode (pre-parse mode), you should return whether you can parse the given string and some information. 
 
-- In test mode:
+In parse mode, you should return parsed actual JsonML element. All the other things are done automatically, including inline element parsing. See below for details.
+
+- In test mode (pre-parse mode):
   - Return null if you can't parse.
   - Return `{index, lastIndex, priority}` if you can parse. 
     - index {Integer}: The position of given string that parser can parse.
     - lastIndex {Integer}: The next position after the parser has finished parse.
     - priority {Integer}: Priority is used when two or more parser returns same index in test mode. If you want more higher priority than others, return less than zero. Otherwise, just use 0. 
-- In parse mode(non-test mode):
+- In parse mode:
   - Return the JsonML element.
