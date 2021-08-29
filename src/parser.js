@@ -86,7 +86,7 @@ class Parser {
     let s = mdtext;
     while (!!s && s.length > 0) {
       // 먼저 test모드로 돌려본다.
-      console.log(`BEGIN test match string: '${s}'`);
+      console.log(`\nBEGIN test match string: '${s}'`);
 
       const m = this._bestMatch(this.blockMatchers, s);
       if (!m) {
@@ -109,7 +109,7 @@ class Parser {
         els = [els];
       }
 
-      console.log(`MATCHER ${m.matcher.name}, parse result: ${inspect(els)}`);
+      console.log(`MATCHER ${m.matcher.name}, PARSE RESULT: ${inspect(els)}`);
 
       els.forEach(el => {
         // traverse하며 inline parse를 적용한다.
